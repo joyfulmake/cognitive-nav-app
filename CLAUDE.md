@@ -409,13 +409,22 @@ Base canvas feels like sunlit handmade paper. Cards like warm cream/linen. L3 oc
 - Sans: **Plus Jakarta Sans** — body (warm, rounded, with italic variants)
 - Devanagari: **Noto Sans Devanagari** — Sanskrit verse, `font-devanagari` Tailwind class
 
-## Demo narration robustness (fixed 2026-06-06)
+## Demo narration robustness (fixed 2026-06-07 — TRUE root cause)
 
-All four awaits in the narration loop now have hard timeouts:
-- **EL audio playback**: `Math.max(8000, text.length * 90)` ms safety on `el.onended` — prevents infinite hang if browser never fires `onended` (known issue with short clips in some browsers)
+**Root cause of demo hang (2026-06-07):** `await db.ttsCache.put(...)` in `speakRaw` ran BEFORE audio playback with no timeout. Concurrent `prefetch` calls wrote to the same IndexedDB object store, causing write contention that blocked `put()` indefinitely. The audio safety timeout was unreachable while `put()` was blocked — the narration loop hung forever. The old `lineCapTimer` approach (setTimeout + `lineCapFired` flag) could not interrupt an in-flight `await`.
+
+**Fix (2026-06-07):**
+- Module-level `_memCache = new Map<string, ArrayBuffer>()` in `useElevenLabsTTS.ts` — speakRaw and prefetch check memory first (synchronous, never blocks)
+- Dexie reads use `Promise.race` with 2s timeout — skip IndexedDB if contended, not hang
+- Dexie writes are fire-and-forget (`.catch(() => {})`) — audio plays immediately, IndexedDB catches up in background
+- `lineCapTimer` replaced with `Promise.race` per tier in `DemoFlow.tsx` — `setTimeout + flag` cannot interrupt in-flight awaits; `Promise.race` can
+
+**Remaining timeouts:**
+- **EL audio playback**: `Math.max(text.length * 90, 2500)` ms safety on `el.onended`
 - **OpenAI audio playback**: same safety timeout pattern
-- **Web Speech**: `Math.max(4000, text.length * 65)` ms safety + `u.onerror = done` (handles `canceled`/`interrupted`)
+- **Web Speech**: `Math.max(text.length * 65, 2500)` ms safety + `u.onerror = done`
 - **EL fetch**: 15s AbortController; **OpenAI fetch**: 12s AbortController
+- **Per-tier outer cap**: `Promise.race(speakLine(...), timeout(max(text.length * 130, 12000)))` — defense in depth
 
 `voices.length` removed from narration effect deps — voice loading no longer restarts narration mid-phase. `voicesRef.current` provides the latest list without re-triggering.
 
@@ -433,6 +442,8 @@ Save & Preview buttons moved to the **top** of VoiceSettings (directly below the
 - **VoiceSettings scroll-after-save**: when onClose restarts the demo (`setPhaseIdx(0)`), the tall settings panel collapses but the viewport doesn't scroll. Fixed: call `demoContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })` with 80ms delay in the onClose handler.
 - **VoiceSettings height inside DemoFlow**: no height constraint means it can push content far below viewport. Fixed: wrap in `div` with `maxHeight: 'min(75vh, 580px)'` + `overflow-y-auto`.
 - **framer-motion v12 AnimatePresence exit**: silently fails in some conditions. Use CSS `max-height` transitions for critical show/hide. Never use `AnimatePresence` for the gates accordion.
+- **Dexie ttsCache write contention (FIXED 2026-06-07)**: Never `await db.ttsCache.put(...)` before playing audio. Concurrent prefetch writes to the same IndexedDB object store cause write contention that blocks the main put() indefinitely, hanging narration forever. Fix: `_memCache` (module-level Map) for instant lookup; Dexie writes fire-and-forget; Dexie reads use `Promise.race` with 2s timeout.
+- **lineCapTimer cannot interrupt awaits**: `setTimeout + lineCapFired` pattern is broken — setting the flag doesn't abort an in-flight `await`. Use `Promise.race(speakLine(...), makeTierTimeout(ms))` instead. Fixed 2026-06-07.
 - **Dexie ttsCache**: store as `ArrayBuffer` not `Uint8Array`. `Uint8Array.buffer` may have offset.
 - **ElevenLabs availability**: use `useRef` not `useState` for the available flag — putting it in useEffect deps causes narration to restart mid-line.
 - **Kokoro English-only**: check `langCode === 'en'` before using Kokoro. ElevenLabs handles all languages.
