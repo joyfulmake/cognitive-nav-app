@@ -421,10 +421,16 @@ Base canvas feels like sunlit handmade paper. Cards like warm cream/linen. L3 oc
 
 **Remaining timeouts:**
 - **EL audio playback**: `Math.max(text.length * 90, 2500)` ms safety on `el.onended`
-- **OpenAI audio playback**: same safety timeout pattern
+- **OpenAI audio playback**: same safety timeout pattern (floor 2500ms, was 8000ms)
 - **Web Speech**: `Math.max(text.length * 65, 2500)` ms safety + `u.onerror = done`
 - **EL fetch**: 15s AbortController; **OpenAI fetch**: 12s AbortController
-- **Per-tier outer cap**: `Promise.race(speakLine(...), timeout(max(text.length * 130, 12000)))` — defense in depth
+- **Per-tier outer cap**: `Promise.race(speakLine(...), timeout(max(text.length * 130, 5000)))` — defense in depth (was 12000ms, reduced to 5000ms)
+
+`voices.length` removed from narration effect deps — voice loading no longer restarts narration mid-phase. `voicesRef.current` provides the latest list without re-triggering.
+
+**OpenAI TTS fix (2026-06-07):** `useOpenAITTS.ts` had the same blocking Dexie awaits as EL — applied identical `_memCache` fix. This was causing the remaining hang even after the EL fix, because Tier 0 (OpenAI) was tried first and its Dexie `get/put()` had no timeout. Also fixed safety floor from `max(8000, ...)` to `max(text.length*90, 2500)`.
+
+**Web Speech voice differentiation (2026-06-07):** Widened guide/learner rate+pitch gap for single-voice devices (e.g. Hindi with only one Web Speech voice). Guide: rate ×0.84, pitch ×0.78. Learner: rate ×1.15, pitch ×1.24. Previously ×0.88/×0.82 and ×1.10/×1.18.
 
 `voices.length` removed from narration effect deps — voice loading no longer restarts narration mid-phase. `voicesRef.current` provides the latest list without re-triggering.
 
@@ -442,8 +448,9 @@ Save & Preview buttons moved to the **top** of VoiceSettings (directly below the
 - **VoiceSettings scroll-after-save**: when onClose restarts the demo (`setPhaseIdx(0)`), the tall settings panel collapses but the viewport doesn't scroll. Fixed: call `demoContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })` with 80ms delay in the onClose handler.
 - **VoiceSettings height inside DemoFlow**: no height constraint means it can push content far below viewport. Fixed: wrap in `div` with `maxHeight: 'min(75vh, 580px)'` + `overflow-y-auto`.
 - **framer-motion v12 AnimatePresence exit**: silently fails in some conditions. Use CSS `max-height` transitions for critical show/hide. Never use `AnimatePresence` for the gates accordion.
-- **Dexie ttsCache write contention (FIXED 2026-06-07)**: Never `await db.ttsCache.put(...)` before playing audio. Concurrent prefetch writes to the same IndexedDB object store cause write contention that blocks the main put() indefinitely, hanging narration forever. Fix: `_memCache` (module-level Map) for instant lookup; Dexie writes fire-and-forget; Dexie reads use `Promise.race` with 2s timeout.
+- **Dexie ttsCache write contention (FIXED 2026-06-07)**: Never `await db.ttsCache.get/put(...)` without a timeout before playing audio. Both `useElevenLabsTTS.ts` and `useOpenAITTS.ts` had this bug — concurrent prefetch writes to the same IndexedDB object store cause write contention. Fix: module-level `_memCache: Map<string, ArrayBuffer>` in both hooks; Dexie reads use `Promise.race` with 2s timeout; Dexie writes fire-and-forget.
 - **lineCapTimer cannot interrupt awaits**: `setTimeout + lineCapFired` pattern is broken — setting the flag doesn't abort an in-flight `await`. Use `Promise.race(speakLine(...), makeTierTimeout(ms))` instead. Fixed 2026-06-07.
+- **tierCap too high**: `max(text.length*130, 12000)` = 12s minimum per tier. For a 22-char line, all 3 tiers hanging = 36s apparent freeze. Reduced to `max(text.length*130, 5000)` = 5s minimum. Fixed 2026-06-07.
 - **Dexie ttsCache**: store as `ArrayBuffer` not `Uint8Array`. `Uint8Array.buffer` may have offset.
 - **ElevenLabs availability**: use `useRef` not `useState` for the available flag — putting it in useEffect deps causes narration to restart mid-line.
 - **Kokoro English-only**: check `langCode === 'en'` before using Kokoro. ElevenLabs handles all languages.
