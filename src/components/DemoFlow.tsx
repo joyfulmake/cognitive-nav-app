@@ -811,11 +811,25 @@ type Phase =
   | { type: 'gate2-mastered' }
   | { type: 'completion'; score: number }
 
-function buildPhases(script: DemoScript): Phase[] {
+// Rotating L1 starter questions — cycles on each demo restart so the field is never static.
+// All are naturally shallow (naming/defining) — the demo shows the redirect from here.
+const DEMO_STARTER_QUESTIONS = [
+  'What is TCP/IP?',
+  'How does the heart pump blood?',
+  'What is machine learning?',
+  'How does WiFi actually work?',
+  'Why does the sky look blue?',
+  'What is the immune system?',
+  'How do vaccines work?',
+  'What is gravity?',
+]
+
+function buildPhases(script: DemoScript, questionIdx = 0): Phase[] {
+  const firstQ = DEMO_STARTER_QUESTIONS[questionIdx % DEMO_STARTER_QUESTIONS.length]
   const phases: Phase[] = [
     { type: 'topic-select' },
     { type: 'target-select' },
-    { type: 'intro-question', firstQ: 'What is ' + script.topic.split(' ')[0] + '?' },
+    { type: 'intro-question', firstQ },
     { type: 'l1-detected', prick: script.gate1Prick },
     { type: 'gate1-study' },
     { type: 'gate1-q', question: script.gate1Questions[0], count: 0 },
@@ -1313,7 +1327,8 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
   useEffect(() => { runningRef.current = running }, [running])
 
   const script = appMode === 'clinical' ? CLINICAL : EPISTEMIC
-  const phases = buildPhases(script)
+  const [questionIdx, setQuestionIdx] = useState(0)
+  const phases = buildPhases(script, questionIdx)
 
   const advance = useCallback(() => setPhaseIdx(p => (p + 1) % phases.length), [phases.length])
   const advanceRef = useRef(advance)
@@ -1418,6 +1433,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
     const isNonEnglish = langCode !== 'en'
     let aborted = false
     async function runNarration() {
+      try {
       await new Promise(r => setTimeout(r, 280))
       if (aborted || myId !== speakIdRef.current) return
 
@@ -1445,10 +1461,10 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         const makeTierTimeout = (ms: number) =>
           new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms))
 
-        // 5s floor: generous for network latency but doesn't feel frozen on short lines.
-        // "Alright. Here goes." (22 chars) → max(2860, 5000) = 5000ms per tier.
+        // 4s floor: enough for network latency, doesn't feel frozen on short lines.
+        // "Alright. Here goes." (22 chars) → max(2860, 4000) = 4000ms per tier.
         // Old 12000ms floor meant 12s of apparent freeze before falling to the next tier.
-        const tierCap = Math.max(text.length * 130, 5000)
+        const tierCap = Math.max(text.length * 130, 4000)
 
         // Tier 0: OpenAI tts-1-hd — Nova (guide) / Onyx (learner) / Shimmer (guide at celebration)
         // Only mark spoken when audio ACTUALLY starts playing (onPlayStart fires).
@@ -1512,7 +1528,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
           setSpeakerInfo({ role, text })
           await Promise.race([
             webSpeechLine(text, role, s),
-            makeTierTimeout(Math.max(text.length * 80, 8000)),
+            makeTierTimeout(Math.max(text.length * 80, 4000)),
           ])
         }
         // Natural breathing room — longer on speaker switches and reflective moments
@@ -1527,6 +1543,15 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
 
       if (!aborted && myId === speakIdRef.current && runningRef.current) {
         setTimeout(() => advanceRef.current(), 900)
+      }
+      } catch (err) {
+        // Any unhandled JS error in the loop (e.g. malformed dialogue, bad voice ID) was
+        // previously silently killing the loop — demo froze with no phase advance.
+        // Now we always advance so the demo continues.
+        console.error('[narration] unhandled error, forcing phase advance', err)
+        if (!aborted && myId === speakIdRef.current && runningRef.current) {
+          setTimeout(() => advanceRef.current(), 1200)
+        }
       }
     }
 
@@ -1560,7 +1585,10 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
   // spotlightOverride: set per dialogue line so visual element locks to spoken word
   const spotlight = spotlightOverride ?? getSpotlight(phases[phaseIdx].type, narrationProgress)
 
-  const handleOpen = () => { setOpen(true); setPhaseIdx(0); setRunning(true) }
+  const handleOpen = () => {
+    setQuestionIdx(q => (q + 1) % DEMO_STARTER_QUESTIONS.length)
+    setOpen(true); setPhaseIdx(0); setRunning(true)
+  }
   const handleClose = () => { setOpen(false); setRunning(false); setPhaseIdx(0) }
 
   const askGuide = useCallback(async () => {
@@ -1681,7 +1709,8 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
                   // read stale language and start the demo in the wrong language.
                   if (savedLang) prefsRef.current = { ...prefsRef.current, language: savedLang }
                   setShowVoiceSettings(false)
-                  setPhaseIdx(0)          // restart demo from beginning with new voice
+                  setQuestionIdx(q => (q + 1) % DEMO_STARTER_QUESTIONS.length)
+                  setPhaseIdx(0)
                   setNarrationProgress(0)
                   setRunning(true)
                   // Scroll the demo top back into view after the settings panel collapses
