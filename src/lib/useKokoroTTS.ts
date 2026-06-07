@@ -115,15 +115,23 @@ export function useKokoroTTS() {
     setState(s => ({ ...s, speaking: true }))
 
     try {
-      const audio = await _instance.generate(text.slice(0, 500), { voice, speed })
+      // Race generate() against a timeout — WASM generation can hang indefinitely on some
+      // browsers/OS combinations; without this, the narration loop freezes permanently.
+      const genTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('kokoro-gen-timeout')), 9000)
+      )
+      const audio = await Promise.race([
+        _instance.generate(text.slice(0, 500), { voice, speed }),
+        genTimeout,
+      ])
       if (abortRef.current) return
       const blob = audio.toBlob()
       const url = URL.createObjectURL(blob)
       const el = new Audio(url)
       audioRef.current = el
       await new Promise<void>(resolve => {
-        // Safety cap — some browsers never fire onended for very short clips.
-        const estMs = Math.max(6000, text.length * 80)
+        // Floor at 3000ms (not 6000) — 6000ms created a 4.5s "hang" for short clips.
+        const estMs = Math.max(text.length * 80, 3000)
         const safety = setTimeout(() => { URL.revokeObjectURL(url); resolve() }, estMs)
         const done = () => { clearTimeout(safety); URL.revokeObjectURL(url); resolve() }
         el.onended = done
@@ -131,7 +139,7 @@ export function useKokoroTTS() {
         el.play().catch(done)
       })
     } catch {
-      // ignore generation errors — just skip the line
+      // ignore — generation timeout or WASM error; narration falls to Web Speech
     } finally {
       if (!abortRef.current) setState(s => ({ ...s, speaking: false }))
     }

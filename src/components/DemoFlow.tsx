@@ -1379,17 +1379,23 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         const u = new SpeechSynthesisUtterance(text)
         u.lang   = useLang
         u.volume = 1.0
-        u.rate   = speedHint != null ? speedHint : (role === 'l' ? Math.min(currentPrefs.rate + 0.06, 1.2) : currentPrefs.rate)
-        // Multiply pitch for each role — gives audible contrast even when voices are identical
+        // Rate: apply role multiplier on top of speedHint so guide/learner stay distinct
+        // even when the same voice is used (common on mobile or when no language pack installed).
+        // Guide: × 0.88 (slower, measured teacher pace)
+        // Learner: × 1.10 (brisker, curious student) — audible even without pitch support
+        const baseRate = speedHint != null ? speedHint : currentPrefs.rate
+        u.rate  = role === 'l'
+          ? Math.min(baseRate * 1.10, 1.35)
+          : Math.max(baseRate * 0.88, 0.6)
+        // Pitch: ×0.82 for guide (deep), ×1.18 for learner (bright)
         u.pitch  = role === 'l'
           ? Math.min(currentPrefs.pitch * 1.18, 1.4)
           : Math.max(currentPrefs.pitch * 0.82, 0.7)
         if (voice) u.voice = voice
         const ka = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume() }, 2000)
-        // Hard cap: estimated audio duration + 5 s buffer.
-        // Prevents the loop from hanging when the browser never fires onend/onerror
-        // (happens on some mobile browsers and when no voice matches the language).
-        const estMs = Math.max(4000, text.length * 65)
+        // Safety cap — floor at 2500ms (not 4000).
+        // 4000ms created a 2.5s silent gap after short lines. 2500ms gives 1s headroom.
+        const estMs = Math.max(text.length * 65, 2500)
         const safety = setTimeout(() => { clearInterval(ka); resolve() }, estMs)
         const done = () => { clearTimeout(safety); clearInterval(ka); resolve() }
         u.onend   = done
@@ -1431,10 +1437,22 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
 
         let spoken = false
 
+        // Per-line outer timeout — fires if ALL tiers together exceed a generous cap.
+        // Prevents any single line from hanging the demo regardless of which tier is active.
+        const lineCapMs = Math.max(text.length * 130, 14000)
+        let lineCapFired = false
+        const lineCapTimer = setTimeout(() => {
+          lineCapFired = true
+          window.speechSynthesis.cancel()
+          kokoro.stop()
+          elevenlabs.stop()
+          openaiTTS.stop()
+        }, lineCapMs)
+
         // Tier 0: OpenAI tts-1-hd — Nova (guide) / Onyx (learner) / Shimmer (guide at celebration)
         // Only mark spoken when audio ACTUALLY starts playing (onPlayStart fires).
         // Any API error, quota issue, or silent playback failure → fall through to next tier.
-        if (!spoken && oaiCanTry) {
+        if (!lineCapFired && !spoken && oaiCanTry) {
           let audioStarted = false
           const r = await openaiTTS.speakLine(text, role, elLang, s, () => {
             setSpeakerInfo({ role, text })
@@ -1445,7 +1463,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         }
 
         // Tier 1: ElevenLabs with user-selected voice IDs (or auto default for language)
-        if (!spoken && elCanTry) {
+        if (!lineCapFired && !spoken && elCanTry) {
           let audioStarted = false
           const r = await elevenlabs.speakLine(text, role, elLang, s, () => {
             setSpeakerInfo({ role, text })
@@ -1456,7 +1474,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
 
           // Tier 1.5: EL free-tier fallback for non-English (e.g. Hindi Voice Library → 422)
           // Retry with free-tier multilingual voices (Matilda guide, Josh learner) — no Voice Library needed
-          if (!spoken && r === 'error' && isNonEnglish) {
+          if (!lineCapFired && !spoken && r === 'error' && isNonEnglish) {
             let audioStarted2 = false
             const r2 = await elevenlabs.speakLine(text, role, elLang, s, () => {
               setSpeakerInfo({ role, text })
@@ -1467,17 +1485,19 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         }
 
         // Tier 2: Kokoro — AI WASM (English only)
-        if (!spoken && kokoroForLocale) {
+        if (!lineCapFired && !spoken && kokoroForLocale) {
           setSpeakerInfo({ role, text })
           await kokoro.speak(text, (v as any) ?? (role === 'g' ? 'af_bella' : 'am_adam'), s ?? 0.9)
           spoken = true
         }
 
         // Tier 3: Web Speech — always available
-        if (!spoken) {
+        if (!lineCapFired && !spoken) {
           setSpeakerInfo({ role, text })
           await webSpeechLine(text, role, s)
         }
+
+        clearTimeout(lineCapTimer)
         // Natural breathing room — longer on speaker switches and reflective moments
         if (!aborted && myId === speakIdRef.current) {
           const nextRole = i + 1 < lines.length ? lines[i + 1].role : null

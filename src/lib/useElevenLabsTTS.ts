@@ -313,8 +313,11 @@ export function useElevenLabsTTS() {
       audioRef.current = el
 
       await new Promise<void>(resolve => {
-        // Safety cap: some browsers never fire onended for very short clips or after autoplay issues.
-        const estMs = Math.max(8000, text.length * 90)
+        // Safety cap — fires when onended never arrives (known browser bug on short clips).
+        // Formula: text.length * 100ms per char gives ~2-3s of headroom after audio ends.
+        // Floor at 3500ms (not 8000) — 8000ms created a perceived 6-second "hang" for
+        // short lines like "Alright. Here goes." where the actual audio is only ~1.5s.
+        const estMs = Math.max(text.length * 100, 3500)
         const safety = setTimeout(() => { URL.revokeObjectURL(url); resolve() }, estMs)
         const done = () => { clearTimeout(safety); URL.revokeObjectURL(url); resolve() }
         el.onended  = done
