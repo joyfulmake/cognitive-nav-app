@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cognitive Nav — Full Architecture</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --ink:       #0a0a0f;
+      --paper:     #f9f8f4;
+      --line:      #e0ddd5;
+      --accent1:   #d64e12;   /* depth fire */
+      --accent2:   #1a6b3a;   /* live green */
+      --accent3:   #0c447c;   /* data blue */
+      --accent4:   #7c2d96;   /* ai purple */
+      --accent5:   #b5860d;   /* offline amber */
+      --muted:     #6b6860;
+      --card-bg:   #ffffff;
+      --tag-r:     #fde8e0;
+      --tag-g:     #d8f3e6;
+      --tag-b:     #dcedf9;
+      --tag-p:     #eedff6;
+      --tag-a:     #fef3cd;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      background: var(--paper);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      padding: 2.5rem 1.5rem 5rem;
+      line-height: 1.5;
+    }
+
+    .wrap { max-width: 72rem; margin: 0 auto; }
+
+    /* ── HEADER ── */
+    .hero {
+      border-bottom: 3px solid var(--ink);
+      padding-bottom: 2.5rem;
+      margin-bottom: 3rem;
+    }
+    .hero-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(2.8rem, 6vw, 5.5rem);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+    }
+    .hero h1 span { color: var(--accent1); }
+    .hero-sub {
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: #3a3733;
+      max-width: 52rem;
+      line-height: 1.65;
+      margin-top: 1rem;
+    }
+    .hero-meta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-top: 1.5rem;
+    }
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      padding: 0.3rem 0.75rem;
+      border: 1.5px solid var(--ink);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--ink);
+      color: var(--paper);
+    }
+    .badge.outline { background: transparent; color: var(--ink); }
+
+    /* ── NORTH STAR BOX ── */
+    .north-star {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 2rem 2.25rem;
+      margin-bottom: 2.5rem;
+      border-left: 6px solid var(--accent1);
+    }
+    .north-star .ns-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent1);
+      margin-bottom: 0.75rem;
+    }
+    .north-star p {
+      font-size: 1.1rem;
+      font-weight: 600;
+      line-height: 1.75;
+      color: #f0ede6;
+    }
+    .north-star strong { color: #ffffff; }
+
+    /* ── SECTION TITLES ── */
+    .section-head {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+      border-top: 3px solid var(--ink);
+      padding-top: 1rem;
+      margin-top: 3rem;
+    }
+    .section-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      flex-shrink: 0;
+    }
+    .section-head h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.9rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+    }
+    .section-head h2 em {
+      font-style: normal;
+      color: var(--accent1);
+    }
+
+    /* ── DEPTH RUBRIC ── */
+    .depth-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+      border: 3px solid var(--ink);
+      margin-bottom: 2rem;
+    }
+    .depth-cell {
+      padding: 1.5rem 1.25rem;
+      border-right: 3px solid var(--ink);
+      position: relative;
+    }
+    .depth-cell:last-child { border-right: none; }
+    .depth-cell .layer-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 3.5rem;
+      font-weight: 500;
+      line-height: 1;
+      color: var(--line);
+      margin-bottom: 0.5rem;
+    }
+    .depth-cell .layer-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+    .depth-cell h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      line-height: 1.2;
+    }
+    .depth-cell p {
+      font-size: 0.875rem;
+      color: #3a3733;
+      line-height: 1.6;
+      font-weight: 500;
+    }
+    .depth-cell .trigger {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-top: 0.75rem;
+      padding: 0.35rem 0.6rem;
+      display: inline-block;
+    }
+    .d1 { background: #fff8f5; }
+    .d1 .layer-tag, .d1 .trigger { color: #c43d0f; background: var(--tag-r); }
+    .d2 { background: #f5fff8; }
+    .d2 .layer-tag, .d2 .trigger { color: #1a6b3a; background: var(--tag-g); }
+    .d3 { background: #f5f9ff; }
+    .d3 .layer-tag, .d3 .trigger { color: #0c447c; background: var(--tag-b); }
+    .d4 { background: #faf5ff; }
+    .d4 .layer-tag, .d4 .trigger { color: #7c2d96; background: var(--tag-p); }
+    .d4 h3 { color: var(--accent4); }
+
+    /* ── PRICK LOOP ── */
+    .prick-loop {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 3px solid var(--ink);
+      margin-bottom: 2rem;
+    }
+    .prick-cell {
+      padding: 1.5rem;
+      border-right: 3px solid var(--ink);
+    }
+    .prick-cell:last-child { border-right: none; }
+    .prick-cell .pc-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    .prick-cell h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .prick-cell p {
+      font-size: 0.875rem;
+      color: #3a3733;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+
+    /* ── STACK TABLE ── */
+    .stack-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 3px solid var(--ink);
+      margin-bottom: 2rem;
+      font-size: 0.9rem;
+    }
+    .stack-table thead { background: var(--ink); color: var(--paper); }
+    .stack-table thead th {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      padding: 0.9rem 1rem;
+      text-align: left;
+      font-weight: 500;
+    }
+    .stack-table tbody tr { border-bottom: 2px solid var(--line); }
+    .stack-table tbody tr:last-child { border-bottom: none; }
+    .stack-table tbody td {
+      padding: 1rem;
+      vertical-align: top;
+      font-weight: 500;
+      line-height: 1.55;
+    }
+    .stack-table td:first-child {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
+      width: 14%;
+      white-space: nowrap;
+    }
+    .stack-table td:nth-child(2) {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: var(--ink);
+      width: 28%;
+    }
+    .stack-table td:nth-child(3) { color: #3a3733; width: 30%; }
+    .stack-table td:nth-child(4) {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.78rem;
+      color: var(--accent4);
+      width: 28%;
+    }
+    .stack-table .why-not {
+      font-size: 0.75rem;
+      color: #9a3030;
+      font-style: italic;
+      margin-top: 0.25rem;
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+    }
+
+    /* ── ACCORDION ── */
+    .accordion { display: flex; flex-direction: column; gap: 0; margin-bottom: 2rem; }
+    .acc-item { border: 3px solid var(--ink); margin-bottom: -3px; }
+    .acc-trigger {
+      width: 100%;
+      background: #f4f2ec;
+      border: none;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+    }
+    .acc-trigger:hover { background: #eceae3; }
+    .acc-trigger.open { background: var(--ink); color: var(--paper); }
+    .acc-trigger h3 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .acc-trigger p {
+      font-size: 0.85rem;
+      font-weight: 500;
+      margin-top: 0.2rem;
+      opacity: 0.75;
+    }
+    .acc-chev {
+      flex-shrink: 0;
+      width: 1.5rem;
+      height: 1.5rem;
+      transition: transform 0.25s;
+      margin-left: 1rem;
+    }
+    .acc-chev.open { transform: rotate(180deg); }
+    .acc-body {
+      display: none;
+      border-top: 3px solid var(--ink);
+      padding: 1.75rem;
+      background: var(--card-bg);
+    }
+    .acc-body.open { display: block; }
+
+    /* ── INSIDE ACCORDION ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem; }
+    .box-r { background: #fff3f0; border: 2px solid #d64e12; padding: 1.25rem; }
+    .box-g { background: #eefaf3; border: 2px solid #1a6b3a; padding: 1.25rem; }
+    .box-b { background: #edf4fc; border: 2px solid #0c447c; padding: 1.25rem; }
+    .box-p { background: #f6eefa; border: 2px solid #7c2d96; padding: 1.25rem; }
+    .box-a { background: #fef9ec; border: 2px solid #b5860d; padding: 1.25rem; }
+    .box-k { background: #f4f2ec; border: 2px solid var(--ink); padding: 1.25rem; }
+    .box-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      margin-bottom: 0.6rem;
+    }
+    .box-r .box-label { color: var(--accent1); }
+    .box-g .box-label { color: var(--accent2); }
+    .box-b .box-label { color: var(--accent3); }
+    .box-p .box-label { color: var(--accent4); }
+    .box-a .box-label { color: var(--accent5); }
+    .box-k .box-label { color: var(--ink); }
+    .box-body { font-size: 0.9rem; font-weight: 500; line-height: 1.65; color: #2a2825; }
+    .box-body strong { font-weight: 700; }
+    .box-body code {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      background: rgba(0,0,0,0.07);
+      padding: 0.1rem 0.35rem;
+      border-radius: 2px;
+    }
+
+    /* ── OFFLINE TIERS ── */
+    .offline-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+      border: 3px solid var(--ink);
+      margin-bottom: 1.25rem;
+    }
+    .offline-cell {
+      padding: 1.5rem 1.25rem;
+      border-right: 3px solid var(--ink);
+    }
+    .offline-cell:last-child { border-right: none; }
+    .offline-cell .oc-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 0.25rem 0.5rem;
+      margin-bottom: 0.75rem;
+      display: inline-block;
+    }
+    .oc-full { background: var(--tag-a); color: #7a5800; }
+    .oc-part { background: var(--tag-b); color: #0c447c; }
+    .oc-sync { background: var(--tag-g); color: #1a6b3a; }
+    .offline-cell h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .offline-cell p { font-size: 0.875rem; font-weight: 500; line-height: 1.6; color: #3a3733; }
+    .offline-cell ul { margin-top: 0.5rem; padding-left: 1.1rem; }
+    .offline-cell ul li { font-size: 0.86rem; color: #3a3733; font-weight: 500; line-height: 1.65; }
+
+    /* ── MEDICAL VARIANT ── */
+    .med-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .med-card {
+      border: 3px solid var(--ink);
+      padding: 1.25rem;
+      background: var(--card-bg);
+    }
+    .med-card .mc-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent3);
+      margin-bottom: 0.5rem;
+    }
+    .med-card h4 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+    .med-card p { font-size: 0.875rem; font-weight: 500; line-height: 1.6; color: #3a3733; }
+
+    /* ── VEDIC + SCIENCE ── */
+    .vedic-bar {
+      border-left: 5px solid var(--accent4);
+      background: var(--tag-p);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .vedic-bar .vb-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent4);
+      margin-bottom: 0.4rem;
+    }
+    .vedic-bar .vb-skt {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #5a1f78;
+      margin-bottom: 0.3rem;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .vedic-bar p { font-size: 0.9rem; color: #5a1f78; font-weight: 500; line-height: 1.65; }
+
+    .science-bar {
+      border-left: 5px solid var(--accent3);
+      background: var(--tag-b);
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.25rem;
+    }
+    .science-bar .sb-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent3);
+      margin-bottom: 0.4rem;
+    }
+    .science-bar p { font-size: 0.9rem; color: #0a3560; font-weight: 500; line-height: 1.65; }
+
+    /* ── FLOW DIAGRAM (text-based) ── */
+    .flow-diagram {
+      border: 3px solid var(--ink);
+      padding: 2rem;
+      margin-bottom: 1.5rem;
+      background: var(--card-bg);
+      font-family: 'DM Mono', monospace;
+      overflow-x: auto;
+    }
+    .flow-diagram .flow-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1.5rem;
+      color: var(--muted);
+    }
+    .flow-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .flow-node {
+      padding: 0.5rem 1rem;
+      border: 2px solid var(--ink);
+      font-size: 0.78rem;
+      font-weight: 500;
+      white-space: nowrap;
+      background: #fff;
+    }
+    .flow-node.highlight { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+    .flow-node.accent-r { background: var(--tag-r); border-color: var(--accent1); color: #7a2200; }
+    .flow-node.accent-g { background: var(--tag-g); border-color: var(--accent2); color: #0f3f22; }
+    .flow-node.accent-b { background: var(--tag-b); border-color: var(--accent3); color: #062a50; }
+    .flow-node.accent-p { background: var(--tag-p); border-color: var(--accent4); color: #4a1165; }
+    .flow-node.accent-a { background: var(--tag-a); border-color: var(--accent5); color: #6b4e00; }
+    .flow-arrow { color: var(--muted); font-size: 1rem; flex-shrink: 0; }
+    .flow-indent { margin-left: 3rem; }
+
+    /* ── KEY PRINCIPLE ── */
+    .key-principle {
+      background: var(--ink);
+      color: var(--paper);
+      padding: 2rem 2.25rem;
+      margin-top: 3rem;
+      border-left: 6px solid var(--accent1);
+    }
+    .key-principle .kp-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent1);
+      margin-bottom: 0.75rem;
+    }
+    .key-principle p {
+      font-size: 1.05rem;
+      font-weight: 600;
+      line-height: 1.8;
+      color: #f0ede6;
+      margin-bottom: 0.75rem;
+    }
+    .key-principle p:last-child { margin-bottom: 0; }
+    .key-principle strong { color: #ffffff; }
+
+    /* ── REFS ── */
+    .refs {
+      border: 2px solid var(--line);
+      padding: 1.5rem;
+      margin-top: 2.5rem;
+      background: #f4f2ec;
+    }
+    .refs h4 {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+    .refs p {
+      font-size: 0.82rem;
+      color: var(--muted);
+      line-height: 1.65;
+      font-weight: 500;
+      margin-bottom: 0.4rem;
+    }
+    .refs span { font-weight: 700; color: var(--ink); }
+
+    /* ── DESIGN NOTES ── */
+    .design-note {
+      font-family: 'DM Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      margin-top: 3rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      text-align: center;
+      margin-top: 3rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    @media (max-width: 760px) {
+      .depth-grid { grid-template-columns: 1fr 1fr; }
+      .prick-loop { grid-template-columns: 1fr; }
+      .prick-cell { border-right: none; border-bottom: 3px solid var(--ink); }
+      .prick-cell:last-child { border-bottom: none; }
+      .two-col { grid-template-columns: 1fr; }
+      .offline-grid { grid-template-columns: 1fr; }
+      .offline-cell { border-right: none; border-bottom: 3px solid var(--ink); }
+      .offline-cell:last-child { border-bottom: none; }
+      .med-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HERO -->
+  <header class="hero">
+    <p class="hero-tag">architecture · v1.0 · no em dashes allowed</p>
+    <h1>COGNITIVE<br/><span>NAV</span></h1>
+    <p class="hero-sub">A full functional and technical architecture for the world's first depth-graded epistemic engine. Two apps. One philosophy: the question IS the answer.</p>
+    <div class="hero-meta">
+      <span class="badge">App 1: General Epistemic</span>
+      <span class="badge">App 2: Clinical Crucible</span>
+      <span class="badge outline">NoSQL First</span>
+      <span class="badge outline">Offline-Aware</span>
+      <span class="badge outline">Open-Weight AI</span>
+    </div>
+  </header>
+
+  <!-- NORTH STAR -->
+  <div class="north-star">
+    <div class="ns-label">North Star</div>
+    <p>Traditional education tests <strong>memory.</strong> This app tests <strong>cognitive navigation.</strong> The act of formulating the exact right question at the right depth requires a structural, near-unconscious understanding of the system's inflection points. You are building a mirror for the mind, not a quiz engine. The user's question is the output being graded. The answer is just the reward for reaching the right depth.</p>
+  </div>
+
+  <!-- SECTION 1: DEPTH RUBRIC -->
+  <div class="section-head">
+    <span class="section-num">01</span>
+    <h2>The Depth <em>Rubric</em></h2>
+  </div>
+  <p style="font-size:1rem;font-weight:600;color:#3a3733;margin-bottom:1.5rem;max-width:58rem;line-height:1.7">Four layers. Every question a user types is evaluated against these four. The AI does not answer Layer 1 or 2 questions. It pricks. It redirects. It forces reformulation until the user reaches Layer 3 or 4. Vedic philosophy calls this <strong>परिप्रश्न (Pariprashna)</strong>: deep, relentless, investigative inquiry.</p>
+
+  <div class="depth-grid">
+    <div class="depth-cell d1">
+      <div class="layer-num">01</div>
+      <div class="layer-tag">Factual</div>
+      <h3>What / Who</h3>
+      <p>Surface recall. Asks for a named fact or entity. No structural understanding required. A dictionary could answer this.</p>
+      <span class="trigger">Example: "What is TCP?"</span>
+    </div>
+    <div class="depth-cell d2">
+      <div class="layer-num">02</div>
+      <div class="layer-tag">Relational</div>
+      <h3>How / Why</h3>
+      <p>Cause and effect. Asks how components interact or why something happens. Shows basic system awareness.</p>
+      <span class="trigger">Example: "Why does TCP do a 3-way handshake?"</span>
+    </div>
+    <div class="depth-cell d3">
+      <div class="layer-num">03</div>
+      <div class="layer-tag">Systemic</div>
+      <h3>What If</h3>
+      <p>Edge cases, failure modes, structural tensions. User is navigating the system's weak points. Expert-level cognition.</p>
+      <span class="trigger">Example: "What if the SYN-ACK is lost in a lossy network and retransmit timer fires during exponential backoff?"</span>
+    </div>
+    <div class="depth-cell d4">
+      <div class="layer-num">04</div>
+      <div class="layer-tag">Wisdom</div>
+      <h3>Why This System At All</h3>
+      <p>Asks about the design philosophy. Challenges assumptions. Sees the system from outside itself. This is where mastery lives.</p>
+      <span class="trigger">Example: "Why was reliability placed in the transport layer rather than the network layer, and what does that assume about end-host intelligence?"</span>
+    </div>
+  </div>
+
+  <!-- THE PRICK LOOP -->
+  <div class="section-head">
+    <span class="section-num">02</span>
+    <h2>The Prick<em>-Action Loop</em></h2>
+  </div>
+  <p style="font-size:1rem;font-weight:600;color:#3a3733;margin-bottom:1.5rem;max-width:58rem;line-height:1.7">When a user submits a shallow question, the AI does not answer it. It identifies the exact variable the user ignored and delivers a targeted prick. No judgment. Just a structural redirect. The user reformulates. Loop repeats until depth is reached.</p>
+  <div class="prick-loop">
+    <div class="prick-cell">
+      <div class="pc-num">Step 1</div>
+      <h4>User submits question</h4>
+      <p>Any topic. Any domain. The question is tokenized, semantically embedded, and scored against the depth rubric by the local LLM judge model.</p>
+    </div>
+    <div class="prick-cell">
+      <div class="pc-num">Step 2</div>
+      <h4>Depth classified + prick generated</h4>
+      <p>If Layer 1 or 2: The LLM does not reveal the answer. It names the structural variable the user missed and asks a redirecting question. If Layer 3 or 4: full answer + depth acknowledgment.</p>
+    </div>
+    <div class="prick-cell">
+      <div class="pc-num">Step 3</div>
+      <h4>User reformulates</h4>
+      <p>The loop restarts. Each reformulation is stored. Progress is measured by the trajectory across reformulations, not just the final question. The journey IS the grade.</p>
+    </div>
+  </div>
+
+  <!-- SECTION 3: FULL TECH STACK -->
+  <div class="section-head">
+    <span class="section-num">03</span>
+    <h2>Full Tech <em>Stack</em></h2>
+  </div>
+  <p style="font-size:1rem;font-weight:600;color:#3a3733;margin-bottom:1.5rem;max-width:58rem;line-height:1.7">No defaults. No vendor lock-in. No fragile REST-only architectures. Every choice below is justified against the alternative and selected for resilience, offline capability, and global scale.</p>
+
+  <table class="stack-table">
+    <thead>
+      <tr>
+        <th>Layer</th>
+        <th>Technology</th>
+        <th>Reason</th>
+        <th>Default Rejected</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Frontend</td>
+        <td>React Native (Expo) + PWA fallback</td>
+        <td>Single codebase for iOS, Android, and web. Offline-first with service workers on PWA. Expo's managed workflow handles OTA updates without app store friction.</td>
+        <td>Flutter (Dart ecosystem is smaller, fewer AI/ML libs). Native iOS/Android (double codebase cost).</td>
+      </tr>
+      <tr>
+        <td>State Mgmt</td>
+        <td>Zustand + TanStack Query</td>
+        <td>Zustand is feather-light (2KB), no boilerplate. TanStack Query handles async state, caching, optimistic updates, and offline queue natively.</td>
+        <td class="why-not">Redux (verbose, overkill). MobX (magic = hard to debug).</td>
+      </tr>
+      <tr>
+        <td>Primary DB</td>
+        <td>CouchDB + PouchDB (client-side sync)</td>
+        <td>CouchDB is a NoSQL document store with built-in multi-master replication. PouchDB is its browser/mobile twin. Together they give you offline-first sync with zero custom code. When the device is offline, PouchDB writes locally. When online, it syncs automatically via CouchDB's conflict resolution protocol.</td>
+        <td class="why-not">PostgreSQL (relational, no native offline sync). Firebase (vendor lock-in, expensive at scale, data leaves your control). MongoDB Atlas (no offline sync natively).</td>
+      </tr>
+      <tr>
+        <td>Cache Layer</td>
+        <td>Redis Cluster (server-side)</td>
+        <td>Session data, leaderboard snapshots, recently-fetched knowledge graphs, and AI evaluation caches. TTL-based auto-expiry. Redis Cluster gives horizontal scaling without single-point failure.</td>
+        <td class="why-not">Memcached (no persistence, no cluster-native support).</td>
+      </tr>
+      <tr>
+        <td>Vector Store</td>
+        <td>Qdrant (self-hosted)</td>
+        <td>Stores semantic embeddings of user questions and knowledge graph nodes. Enables nearest-neighbor search to find similar past questions, track depth trajectory, and suggest depth nudges. Self-hosted means your embeddings never leave your infrastructure. HNSW index is faster than FAISS at production scale with filtering.</td>
+        <td class="why-not">Pinecone (managed, expensive, data on third-party servers). Weaviate (heavier, more complex ops). FAISS (no native server, just a library).</td>
+      </tr>
+      <tr>
+        <td>AI Judge</td>
+        <td>Llama 3.1 70B (quantized, self-hosted via Ollama or vLLM)</td>
+        <td>Runs on your own GPU server. No per-token cost. Fine-tuned on Socratic evaluation datasets and the depth rubric. vLLM gives 20x throughput vs naive inference via PagedAttention. For very constrained offline mode: Llama 3.2 3B on device.</td>
+        <td class="why-not">OpenAI/Anthropic API (pay-per-token, data leaves device, no offline). GPT-4 (cost at scale is prohibitive for education apps globally).</td>
+      </tr>
+      <tr>
+        <td>Embeddings</td>
+        <td>nomic-embed-text (self-hosted via Ollama)</td>
+        <td>8192 context window. Outperforms OpenAI Ada-002 on retrieval benchmarks. Runs fully locally. Used for question embedding, knowledge graph embedding, and similarity search in Qdrant.</td>
+        <td class="why-not">OpenAI Embeddings (API cost, data exposure). Cohere Embed (same issues).</td>
+      </tr>
+      <tr>
+        <td>Ingestion Engine</td>
+        <td>Python (Scrapy + Playwright-stealth + asyncio)</td>
+        <td>Scrapy handles bulk crawls. Playwright-stealth handles JS-heavy pages and evades bot detection via TLS fingerprint spoofing (curl-impersonate wrapped). Gaussian jitter on request timing to mimic human behavior. Async pipelines so scraping and embedding happen in parallel.</td>
+        <td class="why-not">BeautifulSoup alone (no JS rendering). Puppeteer (Node, harder to integrate with Python ML pipeline).</td>
+      </tr>
+      <tr>
+        <td>Queue / Jobs</td>
+        <td>BullMQ (Redis-backed)</td>
+        <td>Background job queue for: scraping tasks, embedding generation, report generation, and offline sync conflict resolution. Priority queues let real-time user evaluation preempt background scraping. Dead letter queues for failed jobs with retry logic.</td>
+        <td class="why-not">Celery (heavier, requires RabbitMQ or Redis anyway). AWS SQS (vendor lock-in, cost).</td>
+      </tr>
+      <tr>
+        <td>API Layer</td>
+        <td>Fastify (Node.js) + GraphQL (Pothos)</td>
+        <td>Fastify is 3x faster than Express with schema validation built in. GraphQL lets the client declare exactly what data it needs, reducing overfetch. Critical for mobile bandwidth efficiency. Pothos gives type-safe schema definition without code-gen friction.</td>
+        <td class="why-not">REST only (overfetch/underfetch problems on mobile). Express (slow, no validation). Apollo Server (heavy, opinionated).</td>
+      </tr>
+      <tr>
+        <td>Auth</td>
+        <td>Lucia Auth (self-hosted) + Passkey support</td>
+        <td>Lucia is a minimal, framework-agnostic auth library with session management, PKCE OAuth, and passkey (WebAuthn) support. No third-party auth service. Students in regions with poor connectivity benefit from passkey (no OTP SMS needed).</td>
+        <td class="why-not">Auth0/Clerk (SaaS cost, data on third-party). Firebase Auth (vendor lock-in).</td>
+      </tr>
+      <tr>
+        <td>Infra / Deploy</td>
+        <td>Fly.io (edge machines) + Tigris (S3-compatible object storage)</td>
+        <td>Fly.io runs containers at the edge in 30+ regions. Latency matters for AI evaluation responses. Machines can scale to zero between load. Tigris is globally distributed object storage built on Fly's network. No AWS. No GCP. No cost treadmill.</td>
+        <td class="why-not">AWS/GCP (complex pricing, cold start latency, overkill for early scale). Vercel (no background jobs, no persistent connections).</td>
+      </tr>
+      <tr>
+        <td>Monitoring</td>
+        <td>OpenTelemetry + Grafana + Tempo</td>
+        <td>Full observability: traces, metrics, logs. Grafana dashboards for depth distribution across users (see how many users are stuck at Layer 1 vs reaching Layer 4). Tempo for distributed tracing across scrape, embed, evaluate pipeline.</td>
+        <td class="why-not">DataDog (expensive). Sentry alone (no metrics). No monitoring at all (dangerous at education scale).</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- SECTION 4: DATA ARCHITECTURE -->
+  <div class="section-head">
+    <span class="section-num">04</span>
+    <h2>Data <em>Architecture</em></h2>
+  </div>
+
+  <div class="accordion">
+
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('doc-schema')">
+        <div>
+          <h3>CouchDB Document Schemas</h3>
+          <p>What gets stored, how, and why documents not rows</p>
+        </div>
+        <svg class="acc-chev" id="chev-doc-schema" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-doc-schema">
+        <div class="two-col">
+          <div class="box-b">
+            <div class="box-label">User Session Document</div>
+            <div class="box-body">
+              <code>_id: "user::uuid"</code><br/>
+              <code>topic: "Cloud Network Security"</code><br/>
+              <code>depth_target: 4</code><br/>
+              <code>reformulations: [ {q, depth_score, prick, ts}, ... ]</code><br/>
+              <code>trajectory_vector: [1, 1, 2, 3, 4]</code><br/>
+              <code>offline_created: true</code><br/>
+              <code>_rev: "..."</code> (CouchDB conflict detection)
+            </div>
+          </div>
+          <div class="box-g">
+            <div class="box-label">Knowledge Graph Node</div>
+            <div class="box-body">
+              <code>_id: "kg::topic::concept"</code><br/>
+              <code>topic: "Cloud Network Security"</code><br/>
+              <code>concept: "Zero Trust Architecture"</code><br/>
+              <code>depth_layer: 3</code><br/>
+              <code>related_concepts: ["mTLS", "SPIFFE", "BeyondCorp"]</code><br/>
+              <code>sources: [{url, scraped_at, hash}]</code><br/>
+              <code>embedding_id: "qdrant::uuid"</code>
+            </div>
+          </div>
+        </div>
+        <div class="box-k">
+          <div class="box-label">Why Documents, Not Rows</div>
+          <div class="box-body">A user's question session has variable structure: number of reformulations, optional medical exam context, offline vs online origin. SQL schemas break when this structure evolves. CouchDB documents flex. The <code>_rev</code> field handles sync conflicts automatically when a student uses the app offline on mobile and later syncs to desktop. No custom merge logic needed.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('qdrant-schema')">
+        <div>
+          <h3>Qdrant Vector Collections</h3>
+          <p>How questions and knowledge live as vectors</p>
+        </div>
+        <svg class="acc-chev" id="chev-qdrant-schema" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-qdrant-schema">
+        <div class="two-col">
+          <div class="box-p">
+            <div class="box-label">Collection: user_questions</div>
+            <div class="box-body">
+              Vector: 768-dim embedding of user's question text<br/>
+              Payload: <code>{ user_id, topic, depth_score, reformulation_index, timestamp }</code><br/>
+              Use: Find users asking structurally similar questions. Cluster them. Surface "you're at the same depth as 847 others who got unstuck by thinking about X."
+            </div>
+          </div>
+          <div class="box-a">
+            <div class="box-label">Collection: knowledge_nodes</div>
+            <div class="box-body">
+              Vector: 768-dim embedding of concept description<br/>
+              Payload: <code>{ topic, concept, depth_layer, exam_board }</code><br/>
+              Use: When user submits question, find nearest knowledge nodes at the next depth layer. Generate the prick using structural gap between user's question and Layer N+1 concepts.
+            </div>
+          </div>
+        </div>
+        <div class="box-b">
+          <div class="box-label">Search at Evaluation Time</div>
+          <div class="box-body">User submits: "What is unconjugated bilirubin?" (Layer 1). The system embeds the question, finds nearest knowledge nodes at Layer 2 and 3. The gap between the user's vector and the Layer 3 concept cluster IS the prick. The LLM then narrates this gap as a targeted redirect question. Depth grading becomes a vector distance problem, not just an LLM classification problem. Faster, cheaper, more consistent.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('ingestion')">
+        <div>
+          <h3>Ingestion Pipeline Architecture</h3>
+          <p>How knowledge enters the system without getting blocked</p>
+        </div>
+        <svg class="acc-chev" id="chev-ingestion" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-ingestion">
+        <div class="flow-diagram">
+          <div class="flow-title">Ingestion Flow</div>
+          <div class="flow-row">
+            <div class="flow-node accent-a">Topic Input</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-b">Scrapy Spider (async)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">URL Queue (Redis)</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-r">TLS Spoof Layer (curl-impersonate)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-r">Gaussian Jitter Delays</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">Playwright-stealth (JS-heavy pages)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">Raw HTML / JSON XHR capture</div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-arrow" style="margin-left:3rem">→</div>
+            <div class="flow-node accent-g">Content Extractor (Trafilatura)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node">Chunk + Clean (512-token chunks)</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-p">nomic-embed-text (local)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-p">Qdrant upsert (knowledge_nodes)</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-b">CouchDB (concept document)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node highlight">Ready for queries</div>
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="box-r">
+            <div class="box-label">Bot Evasion Strategy</div>
+            <div class="box-body">
+              <strong>TLS Fingerprinting:</strong> Default Python requests announces itself via JA3/JA4 hash. Use curl-impersonate to match Chrome's TLS handshake exactly.<br/><br/>
+              <strong>Behavioral Jitter:</strong> Gaussian distribution on delay (mean 2.5s, std 0.8s). Never constant sleep.<br/><br/>
+              <strong>IP Rotation:</strong> Only rotate on 429 or CAPTCHA. Not on every request (that pattern is detectable).
+            </div>
+          </div>
+          <div class="box-g">
+            <div class="box-label">Medical DB Strategy</div>
+            <div class="box-body">
+              Priority XHR capture over HTML parsing. Most modern medical databases (PubMed, Radiopaedia, Amboss) load content via JSON APIs in the network tab. Capture and replay those requests directly.<br/><br/>
+              Respect all <code>robots.txt</code>. Never store PII. Never hammer a server faster than human browsing speed. Rate: max 1 req/2s per domain.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('ai-pipeline')">
+        <div>
+          <h3>AI Evaluation Pipeline</h3>
+          <p>How a user question becomes a depth score and a prick</p>
+        </div>
+        <svg class="acc-chev" id="chev-ai-pipeline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-ai-pipeline">
+        <div class="flow-diagram">
+          <div class="flow-title">Evaluation Flow (target: under 800ms)</div>
+          <div class="flow-row">
+            <div class="flow-node highlight">User Question</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-p">nomic-embed (local, 50ms)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-p">Qdrant ANN search (30ms)</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-b">Top-5 nearest knowledge nodes retrieved</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-r">Heuristic depth pre-classifier (rule-based, 5ms)</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-p">LLM judge (Llama 3.1 70B or 3B offline, 400-600ms)</div>
+          </div>
+          <div class="flow-row">
+            <div class="flow-arrow" style="margin-left:3rem">→</div>
+            <div class="flow-node accent-g">depth_score: 1-4</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-g">prick_text: targeted redirect question</div>
+          </div>
+          <div class="flow-row flow-indent">
+            <div class="flow-arrow">→</div>
+            <div class="flow-node accent-b">Store in CouchDB (session document)</div>
+            <div class="flow-arrow">→</div>
+            <div class="flow-node highlight">Render to user</div>
+          </div>
+        </div>
+        <div class="box-p">
+          <div class="box-label">Why Hybrid (Rule + LLM)</div>
+          <div class="box-body">The rule-based pre-classifier handles 60% of questions fast (pure Layer 1 "What is X?" or pure Layer 4 patterns are recognizable with regex and keyword trees). The LLM only runs for ambiguous middle cases. This keeps median latency under 300ms for most users and reserves GPU compute for the genuinely hard evaluations.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SECTION 5: OFFLINE ARCHITECTURE -->
+  <div class="section-head">
+    <span class="section-num">05</span>
+    <h2>Offline <em>Architecture</em></h2>
+  </div>
+  <p style="font-size:1rem;font-weight:600;color:#3a3733;margin-bottom:1.5rem;max-width:58rem;line-height:1.7">Not a degraded mode. A designed mode. Three tiers of offline capability, each with clear boundaries. Students in low-connectivity regions are not second-class users.</p>
+
+  <div class="offline-grid">
+    <div class="offline-cell">
+      <span class="oc-tag oc-full">Tier 1: Full Offline</span>
+      <h4>Downloaded Topic Packs</h4>
+      <p>User pre-downloads a topic pack (bundled knowledge graph nodes + pre-embedded vectors stored in IndexedDB/PouchDB). Includes Llama 3.2 3B quantized model (GGUF, ~2GB).</p>
+      <ul>
+        <li>Full depth evaluation on device</li>
+        <li>Pricks generated locally</li>
+        <li>Session data stored in PouchDB</li>
+        <li>Syncs to CouchDB on reconnect</li>
+      </ul>
+    </div>
+    <div class="offline-cell">
+      <span class="oc-tag oc-part">Tier 2: Partial Offline</span>
+      <h4>Cached Knowledge + Remote AI</h4>
+      <p>Knowledge graph is cached via service worker. AI evaluation still requires server. Useful when on slow connections (2G/edge): knowledge loads from cache, only the small evaluation payload travels over the network.</p>
+      <ul>
+        <li>Knowledge always instant</li>
+        <li>Evaluation waits for server</li>
+        <li>TanStack Query retry queue handles timeouts</li>
+        <li>BullMQ on server for offline job queue</li>
+      </ul>
+    </div>
+    <div class="offline-cell">
+      <span class="oc-tag oc-sync">Tier 3: Sync on Reconnect</span>
+      <h4>Optimistic UI + Background Sync</h4>
+      <p>If network drops mid-session, the UI shows optimistic state. Questions are queued in PouchDB. On reconnect, PouchDB syncs to CouchDB, server evaluates queued questions, and results are pushed back.</p>
+      <ul>
+        <li>Zero data loss guarantee</li>
+        <li>CouchDB conflict resolution automatic</li>
+        <li>Progress notifications on sync</li>
+        <li>Session continuity preserved</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SECTION 6: MEDICAL VARIANT -->
+  <div class="section-head">
+    <span class="section-num">06</span>
+    <h2>App 2: Clinical <em>Crucible</em></h2>
+  </div>
+  <p style="font-size:1rem;font-weight:600;color:#3a3733;margin-bottom:1.5rem;max-width:58rem;line-height:1.7">Same engine. Radically different content layer. The medical variant replaces general topic knowledge graphs with curriculum-mapped clinical reasoning trees. It targets MBBS Year 1 through NEET SS, USMLE Step 1-3, and UK PLAB.</p>
+
+  <div class="med-grid">
+    <div class="med-card">
+      <div class="mc-tag">Curriculum Mapping</div>
+      <h4>Structured Knowledge Trees</h4>
+      <p>The vector database is pre-loaded with 11 organ system trees. Each node is tagged: <strong>year level, exam board, depth layer, prerequisite concepts.</strong> A NEET PG user gets different prick redirections than a USMLE Step 1 user for the same clinical scenario, because their expected structural depth differs.</p>
+    </div>
+    <div class="med-card">
+      <div class="mc-tag">Diagnostic Question Mode</div>
+      <h4>Type Your Investigation</h4>
+      <p>Instead of MCQ, the user types the investigation they would order. "LFT panel" scores Layer 1. "Serum unconjugated bilirubin with peripheral smear for target cells and reticulocyte count" scores Layer 3. The AI evaluates the precision and mechanistic alignment of the chosen investigation, not just the name.</p>
+    </div>
+    <div class="med-card">
+      <div class="mc-tag">Visual Depth Map</div>
+      <h4>Illuminating Anatomy</h4>
+      <p>No badges. No confetti. The UI shows a layered anatomical or biochemical pathway diagram. As the user's questions deepen, the diagram illuminates from surface to core. The depth of illumination IS the progress indicator. At Layer 4, the root mechanism glows.</p>
+    </div>
+    <div class="med-card">
+      <div class="mc-tag">Exam Board Calibration</div>
+      <h4>Adaptive Depth Expectations</h4>
+      <p>The LLM judge is calibrated per exam board. NEET SS expects surgical decision-making depth. PLAB expects clinical protocol alignment. USMLE Step 1 expects mechanistic biochemical depth. Same question, different depth scores depending on board context. Stored as a payload filter in Qdrant.</p>
+    </div>
+  </div>
+
+  <!-- VEDIC + SCIENCE -->
+  <div class="vedic-bar">
+    <div class="vb-label">Vedic Foundation</div>
+    <div class="vb-skt">तद्विद्धि प्रणिपातेन परिप्रश्नेन सेवया</div>
+    <p>Bhagavad Gita 4.34. Knowledge is attained through approach, deep investigative inquiry (परिप्रश्न, Pariprashna), and service. The app does not give knowledge. It creates the conditions for the student to arrive at it through the quality of their own inquiry. The prick IS the guru function.</p>
+  </div>
+
+  <div class="science-bar">
+    <div class="sb-label">Cognitive Science Foundation</div>
+    <p>Active question formulation shifts the brain from the Default Mode Network (passive, associative, recall) to the Task Positive Network (active, generative, structural). This shift is required for neuroplasticity and myelination of expert problem-solving pathways. The act of reformulating a question at higher depth is not a game mechanic. It is the learning event itself. (Source: Journal of Cognitive Neuroscience; studies on active vs passive retrieval and DMN-TPN anticorrelation.)</p>
+  </div>
+
+  <!-- SECTION 7: UI / GAME FEEL -->
+  <div class="section-head">
+    <span class="section-num">07</span>
+    <h2>Game Feel / <em>UI Philosophy</em></h2>
+  </div>
+
+  <div class="accordion">
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('ui-principles')">
+        <div>
+          <h3>UI Design Principles</h3>
+          <p>What the screen communicates at each depth level</p>
+        </div>
+        <svg class="acc-chev" id="chev-ui-principles" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-ui-principles">
+        <div class="two-col">
+          <div class="box-k">
+            <div class="box-label">Core UI Rule</div>
+            <div class="box-body">No gamification fluff. No confetti. No streaks designed to manufacture engagement. The only visual reward is depth illumination: the knowledge map gets brighter, deeper, more detailed as the user's questions improve. The screen literally becomes more beautiful as the user thinks better. That is the only score that matters.</div>
+          </div>
+          <div class="box-k">
+            <div class="box-label">Typography Principle</div>
+            <div class="box-body">The user's question text is the largest element on screen. It should feel like it carries weight. Monospace font for the user's typed question (signals: this is code, be precise). Serif font for prick text (signals: this is a teacher speaking). Sans-serif for system chrome. The font itself communicates the cognitive register required.</div>
+          </div>
+        </div>
+        <div class="box-g">
+          <div class="box-label">Depth Color Language (consistent across both apps)</div>
+          <div class="box-body">
+            Layer 1: Warm white background. No color accent. The system is neutral, unhurried.<br/>
+            Layer 2: Faint green tint emerges. Movement happening.<br/>
+            Layer 3: Blue-green. The system recognizes real structural thinking.<br/>
+            Layer 4: Deep indigo glow. The map is fully illuminated. The root is visible.<br/><br/>
+            The color is not a reward. It is a reading instrument. It tells the user where they are in the knowledge structure, not how well they are performing.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="acc-item">
+      <button class="acc-trigger" onclick="toggleAcc('progress-model')">
+        <div>
+          <h3>Progress Model</h3>
+          <p>What mastery looks like and how it is stored</p>
+        </div>
+        <svg class="acc-chev" id="chev-progress-model" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <div class="acc-body" id="body-progress-model">
+        <div class="two-col">
+          <div class="box-b">
+            <div class="box-label">Trajectory Score (not just final score)</div>
+            <div class="box-body">A user who starts at Layer 1 and reaches Layer 4 in 3 reformulations earns a higher trajectory score than one who starts at Layer 2 and stays there. The vector of depth scores across reformulations is stored and becomes the primary mastery signal. Stored in CouchDB session document as <code>trajectory_vector</code>.</div>
+          </div>
+          <div class="box-p">
+            <div class="box-label">Concept Coverage Map</div>
+            <div class="box-body">Qdrant tracks which concept nodes a user has reached Layer 3 or 4 on. Stored as a user-concept coverage bitmap in CouchDB. The knowledge map UI renders this coverage as illuminated vs dim nodes. A student can see exactly which parts of their knowledge graph they have depth in and which are still surface-level.</div>
+          </div>
+        </div>
+        <div class="box-a">
+          <div class="box-label">Spaced Repetition Integration</div>
+          <div class="box-body">Concepts where the user achieved Layer 3+ are scheduled for re-surfacing using a modified SM-2 algorithm stored in CouchDB. Not to retest recall. To test whether the depth holds over time, or whether the user's questions about the same concept regress to Layer 1 after two weeks. Regression is a signal that the structural understanding was not consolidated. The system resurfaces the concept with a harder prick.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- KEY PRINCIPLE -->
+  <div class="key-principle">
+    <div class="kp-label">The Architecture in One Paragraph</div>
+    <p>The user types a question. In under 800ms, a local embedding model converts it to a vector, a nearest-neighbor search finds the structural gap between the user's question and the next depth layer, a hybrid rule-LLM system classifies the depth and generates a targeted prick, and the result is stored in a document database that syncs offline automatically. The knowledge that powers all of this is scraped from the web by a stealth crawler that mimics human TLS fingerprints and browsing rhythms, converted to vector embeddings, and stored in a self-hosted vector database that never sends your data to a third party. The entire system runs on the edge in 30+ regions. Students with no internet access use a 2GB quantized model on device. Nothing requires AWS. Nothing requires a paid API key. <strong>This is education infrastructure that can actually reach the world.</strong></p>
+  </div>
+
+  <!-- REFERENCES -->
+  <div class="refs">
+    <h4>References</h4>
+    <p><span>Vedic:</span> Bhagavad Gita 4.34 (Pariprashna, deep investigative inquiry)</p>
+    <p><span>Cognitive Science:</span> Journal of Cognitive Neuroscience: active vs passive retrieval, DMN-TPN anticorrelation in deep question formulation</p>
+    <p><span>Vector Search:</span> Malkov and Yashunin (2018): "Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs" (HNSW, basis for Qdrant indexing)</p>
+    <p><span>LLM Inference:</span> Kwon et al. (2023): "Efficient Memory Management for Large Language Model Serving with PagedAttention" (vLLM throughput basis)</p>
+    <p><span>Offline Sync:</span> CouchDB replication protocol (Apache Foundation): multi-master replication with MVCC conflict resolution</p>
+    <p><span>Bot Evasion:</span> TLS client fingerprinting via JA3/JA4 hashing: Salesforce Engineering (2017), NCC Group (2023)</p>
+    <p><span>Spaced Repetition:</span> Wozniak (1987): SuperMemo SM-2 algorithm for optimized review intervals</p>
+    <p><span>Neuroscience:</span> Porges (2011): Polyvagal Theory (relevance: psychological safety required for deep inquiry). Christoff et al. (2016): DMN and metacognitive awareness in creative reasoning</p>
+  </div>
+
+  <div class="design-note">design notes: no em dashes used. fonts: Syne (display), DM Mono (technical), DM Sans (body). background: white/warm paper. no default color palettes. all choices are context-specific.</div>
+
+  <footer>
+    <p>The question is not a vehicle to the answer. The question IS the answer. Build the engine that makes that visible.</p>
+  </footer>
+
+</div>
+
+<script>
+  function toggleAcc(id) {
+    const body = document.getElementById('body-' + id);
+    const chev = document.getElementById('chev-' + id);
+    const trigger = chev.closest('.acc-trigger');
+    const isOpen = body.classList.contains('open');
+    body.classList.toggle('open', !isOpen);
+    chev.classList.toggle('open', !isOpen);
+    trigger.classList.toggle('open', !isOpen);
+  }
+</script>
+</body>
+</html>

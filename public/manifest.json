@@ -1,0 +1,20 @@
+{
+  "name": "Cognitive Nav",
+  "short_name": "CogNav",
+  "description": "Depth-graded epistemic engine. The question IS the answer.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f8f4",
+  "theme_color": "#0a0a0f",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en"
+}
