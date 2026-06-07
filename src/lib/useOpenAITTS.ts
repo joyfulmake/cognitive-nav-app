@@ -43,6 +43,12 @@ function cacheKey(voice: string, speed: number, text: string): string {
   return `oa2:${voice}:${spTag}:${hashText(text)}`
 }
 
+// ─── In-session memory cache ──────────────────────────────────────────────────
+// Same pattern as useElevenLabsTTS — avoids Dexie read/write contention.
+// Concurrent prefetch writes to the same IndexedDB object store cause write
+// contention that blocks the main put() indefinitely. _memCache is always instant.
+const _memCache = new Map<string, ArrayBuffer>()
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useOpenAITTS() {
@@ -78,13 +84,28 @@ export function useOpenAITTS() {
     const key      = cacheKey(voiceId, speed, text)
 
     try {
-      const cached = await db.ttsCache.get(key)
-      let audioBuf: ArrayBuffer
+      let audioBuf: ArrayBuffer | undefined
 
-      if (cached) {
-        audioBuf = cached.audio
+      // 1. In-memory cache — always instant, never blocks
+      const memHit = _memCache.get(key)
+      if (memHit) {
+        audioBuf = memHit
         if (availableRef.current === null) { availableRef.current = true; setBadge('ai-hd') }
       } else {
+        // 2. Dexie with 2s timeout — skip if IndexedDB is contended by concurrent prefetch writes
+        const dbHit = await Promise.race([
+          db.ttsCache.get(key),
+          new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 2000)),
+        ])
+        if (dbHit) {
+          audioBuf = dbHit.audio
+          _memCache.set(key, audioBuf)
+          if (availableRef.current === null) { availableRef.current = true; setBadge('ai-hd') }
+        }
+      }
+
+      if (!audioBuf) {
+        // 3. Fetch from OpenAI via Netlify function
         setBadge('loading')
         const ctrl = new AbortController()
         const tOut = setTimeout(() => ctrl.abort(), 12000)
@@ -117,7 +138,12 @@ export function useOpenAITTS() {
         }
 
         audioBuf = (await res.arrayBuffer()).slice(0)
-        await db.ttsCache.put({ key, audio: audioBuf, createdAt: Date.now() })
+
+        // Store in memory immediately — synchronous, no blocking
+        _memCache.set(key, audioBuf)
+        // Persist to Dexie fire-and-forget — NEVER await before playing audio
+        db.ttsCache.put({ key, audio: audioBuf, createdAt: Date.now() }).catch(() => {})
+
         if (availableRef.current === null) { availableRef.current = true; setBadge('ai-hd') }
       }
 
@@ -130,7 +156,9 @@ export function useOpenAITTS() {
       audioRef.current = el
 
       await new Promise<void>(resolve => {
-        const estMs = Math.max(8000, text.length * 90)
+        // Safety floor at 2500ms — "Alright. Here goes." is ~1.5s of audio; 8000ms floor
+        // made every short line feel like the demo froze for 6+ extra seconds.
+        const estMs = Math.max(text.length * 90, 2500)
         const safety = setTimeout(() => { URL.revokeObjectURL(url); resolve() }, estMs)
         const done = () => { clearTimeout(safety); URL.revokeObjectURL(url); resolve() }
         el.onended = done
@@ -161,7 +189,14 @@ export function useOpenAITTS() {
     const speed   = pickSpeed(speedHint)
     const key     = cacheKey(voiceId, speed, text)
     try {
-      if (await db.ttsCache.get(key)) return
+      // Skip if already in memory (instant) or Dexie (2s max)
+      if (_memCache.has(key)) return
+      const dbHit = await Promise.race([
+        db.ttsCache.get(key),
+        new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 2000)),
+      ])
+      if (dbHit) { _memCache.set(key, dbHit.audio); return }
+
       const ctrl = new AbortController()
       const tOut = setTimeout(() => ctrl.abort(), 12000)
       let res: Response
@@ -175,7 +210,8 @@ export function useOpenAITTS() {
       clearTimeout(tOut)
       if (!res.ok) return
       const buf = (await res.arrayBuffer()).slice(0)
-      await db.ttsCache.put({ key, audio: buf, createdAt: Date.now() })
+      _memCache.set(key, buf)
+      db.ttsCache.put({ key, audio: buf, createdAt: Date.now() }).catch(() => {})
     } catch { /* silent */ }
   }, [])
 

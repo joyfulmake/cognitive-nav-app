@@ -311,12 +311,71 @@ export function VoiceSettings({ onClose }: Props) {
       </div>
 
 
+      {/* AI voice pickers (ElevenLabs) — at top so always visible without scrolling */}
+      {(() => {
+        const guideOpts   = elGuideOptions(draft.language)
+        const learnerOpts = elLearnerOptions(draft.language)
+        return (
+          <div className="flex flex-col gap-3 rounded-2xl p-4"
+            style={{ backgroundColor: '#fffcf4', border: '1.5px solid rgba(184,106,20,0.25)' }}>
+            <div>
+              <div className="font-mono text-xs font-bold uppercase tracking-widest" style={{ color: '#b86a14' }}>
+                ✦ AI voices · ElevenLabs
+              </div>
+              <div className="font-sans text-xs mt-0.5 leading-[1.6]" style={{ color: '#a09a94' }}>
+                Human-quality voices — 3–5 options per language. Requires{' '}
+                <code className="font-mono" style={{ fontSize: '0.65rem' }}>ELEVENLABS_API_KEY</code>.{' '}
+                Cached after first play — free tier is enough.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
+              {/* EL guide picker */}
+              <div>
+                <label className="font-mono text-xs font-bold uppercase tracking-widest text-muted mb-1.5 block">
+                  Guide voice
+                </label>
+                <select
+                  value={draft.elGuideVoiceId}
+                  onChange={e => setDraft(d => ({ ...d, elGuideVoiceId: e.target.value }))}
+                  className="w-full rounded-xl py-2.5 px-3 font-sans text-xs bg-white focus:outline-none"
+                  style={{ border: '1.5px solid rgba(26,24,37,0.12)' }}
+                >
+                  <option value="">Auto (default for language)</option>
+                  {guideOpts.map(v => (
+                    <option key={v.id} value={v.id}>{v.name} · {v.desc}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* EL learner picker */}
+              <div>
+                <label className="font-mono text-xs font-bold uppercase tracking-widest text-muted mb-1.5 block">
+                  Learner voice
+                </label>
+                <select
+                  value={draft.elLearnerVoiceId}
+                  onChange={e => setDraft(d => ({ ...d, elLearnerVoiceId: e.target.value }))}
+                  className="w-full rounded-xl py-2.5 px-3 font-sans text-xs bg-white focus:outline-none"
+                  style={{ border: '1.5px solid rgba(26,24,37,0.12)' }}
+                >
+                  <option value="">Auto (default for language)</option>
+                  {learnerOpts.map(v => (
+                    <option key={v.id} value={v.id}>{v.name} · {v.desc}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Language */}
       <div>
         <label className="font-mono text-xs font-bold uppercase tracking-widest text-muted mb-2.5 block">
           Language
         </label>
-        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-1.5 max-h-52 overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 min-[360px]:grid-cols-2 gap-1.5 max-h-44 overflow-y-auto pr-1">
           {SUPPORTED_LANGUAGES.map(lang => {
             const isSelected = draft.language === lang.code
             const langHasVoice = voices.some(v => normLang(v.lang).startsWith(lang.code))
@@ -358,63 +417,6 @@ export function VoiceSettings({ onClose }: Props) {
           <VoiceInstallGuide langLabel={selectedLang.label} />
         )}
       </div>
-
-      {/* AI voice pickers (ElevenLabs) */}
-      {(() => {
-        const guideOpts   = elGuideOptions(draft.language)
-        const learnerOpts = elLearnerOptions(draft.language)
-        return (
-          <div className="flex flex-col gap-3 rounded-2xl p-4"
-            style={{ backgroundColor: '#fffcf4', border: '1.5px solid rgba(26,24,37,0.08)' }}>
-            <div>
-              <div className="font-mono text-xs font-bold uppercase tracking-widest" style={{ color: '#7a7570' }}>
-                AI voice · ElevenLabs
-              </div>
-              <div className="font-sans text-xs mt-0.5 leading-[1.6]" style={{ color: '#a09a94' }}>
-                Human-quality voices — requires <code className="font-mono" style={{ fontSize: '0.65rem' }}>ELEVENLABS_API_KEY</code>. Cached after first play.
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
-              {/* EL guide picker */}
-              <div>
-                <label className="font-mono text-xs font-bold uppercase tracking-widest text-muted mb-1.5 block">
-                  Guide
-                </label>
-                <select
-                  value={draft.elGuideVoiceId}
-                  onChange={e => setDraft(d => ({ ...d, elGuideVoiceId: e.target.value }))}
-                  className="w-full rounded-xl py-2.5 px-3 font-sans text-xs bg-white focus:outline-none"
-                  style={{ border: '1.5px solid rgba(26,24,37,0.12)' }}
-                >
-                  <option value="">Auto (default for language)</option>
-                  {guideOpts.map(v => (
-                    <option key={v.id} value={v.id}>{v.name} · {v.desc}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* EL learner picker */}
-              <div>
-                <label className="font-mono text-xs font-bold uppercase tracking-widest text-muted mb-1.5 block">
-                  Learner
-                </label>
-                <select
-                  value={draft.elLearnerVoiceId}
-                  onChange={e => setDraft(d => ({ ...d, elLearnerVoiceId: e.target.value }))}
-                  className="w-full rounded-xl py-2.5 px-3 font-sans text-xs bg-white focus:outline-none"
-                  style={{ border: '1.5px solid rgba(26,24,37,0.12)' }}
-                >
-                  <option value="">Auto (default for language)</option>
-                  {learnerOpts.map(v => (
-                    <option key={v.id} value={v.id}>{v.name} · {v.desc}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
       {/* Web Speech voice pickers (only if multiple voices available) */}
       {draftLanguageVoices.length > 1 && (

@@ -1385,12 +1385,14 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         // Learner: × 1.10 (brisker, curious student) — audible even without pitch support
         const baseRate = speedHint != null ? speedHint : currentPrefs.rate
         u.rate  = role === 'l'
-          ? Math.min(baseRate * 1.10, 1.35)
-          : Math.max(baseRate * 0.88, 0.6)
-        // Pitch: ×0.82 for guide (deep), ×1.18 for learner (bright)
+          ? Math.min(baseRate * 1.15, 1.40)
+          : Math.max(baseRate * 0.84, 0.55)
+        // Pitch: ×0.78 for guide (distinctly deeper), ×1.24 for learner (distinctly brighter).
+        // Wider gap than before — critical when device has only one voice (e.g. Hindi Web Speech)
+        // where rate+pitch is the ONLY distinction between guide and learner.
         u.pitch  = role === 'l'
-          ? Math.min(currentPrefs.pitch * 1.18, 1.4)
-          : Math.max(currentPrefs.pitch * 0.82, 0.7)
+          ? Math.min(currentPrefs.pitch * 1.24, 1.5)
+          : Math.max(currentPrefs.pitch * 0.78, 0.65)
         if (voice) u.voice = voice
         const ka = setInterval(() => { if (window.speechSynthesis.paused) window.speechSynthesis.resume() }, 2000)
         // Safety cap — floor at 2500ms (not 4000).
@@ -1443,7 +1445,10 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
         const makeTierTimeout = (ms: number) =>
           new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms))
 
-        const tierCap = Math.max(text.length * 130, 12000)
+        // 5s floor: generous for network latency but doesn't feel frozen on short lines.
+        // "Alright. Here goes." (22 chars) → max(2860, 5000) = 5000ms per tier.
+        // Old 12000ms floor meant 12s of apparent freeze before falling to the next tier.
+        const tierCap = Math.max(text.length * 130, 5000)
 
         // Tier 0: OpenAI tts-1-hd — Nova (guide) / Onyx (learner) / Shimmer (guide at celebration)
         // Only mark spoken when audio ACTUALLY starts playing (onPlayStart fires).
