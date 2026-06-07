@@ -1437,67 +1437,79 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
 
         let spoken = false
 
-        // Per-line outer timeout — fires if ALL tiers together exceed a generous cap.
-        // Prevents any single line from hanging the demo regardless of which tier is active.
-        const lineCapMs = Math.max(text.length * 130, 14000)
-        let lineCapFired = false
-        const lineCapTimer = setTimeout(() => {
-          lineCapFired = true
-          window.speechSynthesis.cancel()
-          kokoro.stop()
-          elevenlabs.stop()
-          openaiTTS.stop()
-        }, lineCapMs)
+        // Per-tier timeout — each TTS tier is wrapped in Promise.race so a hanging await
+        // (e.g. a network stall or browser audio bug) can never freeze the narration loop.
+        // lineCapTimer (setTimeout + flags) cannot interrupt an in-flight await; Promise.race can.
+        const makeTierTimeout = (ms: number) =>
+          new Promise<'timeout'>(resolve => setTimeout(() => resolve('timeout'), ms))
+
+        const tierCap = Math.max(text.length * 130, 12000)
 
         // Tier 0: OpenAI tts-1-hd — Nova (guide) / Onyx (learner) / Shimmer (guide at celebration)
         // Only mark spoken when audio ACTUALLY starts playing (onPlayStart fires).
         // Any API error, quota issue, or silent playback failure → fall through to next tier.
-        if (!lineCapFired && !spoken && oaiCanTry) {
+        if (!spoken && oaiCanTry) {
           let audioStarted = false
-          const r = await openaiTTS.speakLine(text, role, elLang, s, () => {
-            setSpeakerInfo({ role, text })
-            audioStarted = true
-          })
+          const rRaw = await Promise.race([
+            openaiTTS.speakLine(text, role, elLang, s, () => {
+              setSpeakerInfo({ role, text })
+              audioStarted = true
+            }),
+            makeTierTimeout(tierCap),
+          ])
+          const r = rRaw === 'timeout' ? 'error' : rRaw
           if (r === 'ok' && audioStarted) spoken = true
           // r === 'error', r === 'unconfigured', or ok-but-silent → fall through
         }
 
         // Tier 1: ElevenLabs with user-selected voice IDs (or auto default for language)
-        if (!lineCapFired && !spoken && elCanTry) {
+        if (!spoken && elCanTry) {
           let audioStarted = false
-          const r = await elevenlabs.speakLine(text, role, elLang, s, () => {
-            setSpeakerInfo({ role, text })
-            audioStarted = true
-          }, elGuideOverride, elLearnerOverride)
+          const rRaw = await Promise.race([
+            elevenlabs.speakLine(text, role, elLang, s, () => {
+              setSpeakerInfo({ role, text })
+              audioStarted = true
+            }, elGuideOverride, elLearnerOverride),
+            makeTierTimeout(tierCap),
+          ])
+          const r = rRaw === 'timeout' ? 'error' : rRaw
           if (r === 'ok' && audioStarted) spoken = true
           // fall through on any failure
 
           // Tier 1.5: EL free-tier fallback for non-English (e.g. Hindi Voice Library → 422)
           // Retry with free-tier multilingual voices (Matilda guide, Josh learner) — no Voice Library needed
-          if (!lineCapFired && !spoken && r === 'error' && isNonEnglish) {
+          if (!spoken && r === 'error' && isNonEnglish) {
             let audioStarted2 = false
-            const r2 = await elevenlabs.speakLine(text, role, elLang, s, () => {
-              setSpeakerInfo({ role, text })
-              audioStarted2 = true
-            }, EL_VOICES.matilda.id, EL_VOICES.josh.id)
+            const r2Raw = await Promise.race([
+              elevenlabs.speakLine(text, role, elLang, s, () => {
+                setSpeakerInfo({ role, text })
+                audioStarted2 = true
+              }, EL_VOICES.matilda.id, EL_VOICES.josh.id),
+              makeTierTimeout(tierCap),
+            ])
+            const r2 = r2Raw === 'timeout' ? 'error' : r2Raw
             if (r2 === 'ok' && audioStarted2) spoken = true
           }
         }
 
         // Tier 2: Kokoro — AI WASM (English only)
-        if (!lineCapFired && !spoken && kokoroForLocale) {
+        if (!spoken && kokoroForLocale) {
           setSpeakerInfo({ role, text })
-          await kokoro.speak(text, (v as any) ?? (role === 'g' ? 'af_bella' : 'am_adam'), s ?? 0.9)
+          await Promise.race([
+            kokoro.speak(text, (v as any) ?? (role === 'g' ? 'af_bella' : 'am_adam'), s ?? 0.9),
+            makeTierTimeout(Math.max(text.length * 100, 10000)),
+          ])
           spoken = true
         }
 
         // Tier 3: Web Speech — always available
-        if (!lineCapFired && !spoken) {
+        if (!spoken) {
           setSpeakerInfo({ role, text })
-          await webSpeechLine(text, role, s)
+          await Promise.race([
+            webSpeechLine(text, role, s),
+            makeTierTimeout(Math.max(text.length * 80, 8000)),
+          ])
         }
-
-        clearTimeout(lineCapTimer)
         // Natural breathing room — longer on speaker switches and reflective moments
         if (!aborted && myId === speakIdRef.current) {
           const nextRole = i + 1 < lines.length ? lines[i + 1].role : null

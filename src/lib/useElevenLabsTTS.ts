@@ -220,6 +220,11 @@ function cacheKey(voiceId: string, modelId: string, format: string, text: string
   return `el11:${voiceId}:${modelId.slice(-4)}:${fmtTag}:${hashText(text)}`
 }
 
+// ─── In-session memory cache ──────────────────────────────────────────────────
+// Avoids Dexie read/write contention between concurrent prefetch and speakRaw calls.
+// prefetch writes here; speakRaw checks here first — Dexie is only a persistence layer.
+const _memCache = new Map<string, ArrayBuffer>()
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export function useElevenLabsTTS() {
@@ -249,17 +254,29 @@ export function useElevenLabsTTS() {
     const key = cacheKey(voiceId, modelId, output_format, text)
 
     try {
-      const cached = await db.ttsCache.get(key)
-      let audioBuf: ArrayBuffer
+      let audioBuf: ArrayBuffer | undefined
 
-      if (cached) {
-        audioBuf = cached.audio
-        // Mark available on cache hit — confirms EL was working at some point
-        if (availableRef.current === null) {
-          availableRef.current = true
-          setBadge('human')
-        }
+      // 1. Check in-memory cache first — always instant, no IndexedDB contention
+      const memHit = _memCache.get(key)
+      if (memHit) {
+        audioBuf = memHit
+        if (availableRef.current === null) { availableRef.current = true; setBadge('human') }
       } else {
+        // 2. Try Dexie with a 2s timeout — if IndexedDB is blocked by concurrent prefetch
+        //    writes (same object store), we skip it rather than hanging the narration loop
+        const dbHit = await Promise.race([
+          db.ttsCache.get(key),
+          new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 2000)),
+        ])
+        if (dbHit) {
+          audioBuf = dbHit.audio
+          _memCache.set(key, audioBuf)
+          if (availableRef.current === null) { availableRef.current = true; setBadge('human') }
+        }
+      }
+
+      if (!audioBuf) {
+        // 3. Fetch from ElevenLabs API
         setBadge('loading')
         const ctrl = new AbortController()
         const tOut = setTimeout(() => ctrl.abort(), 15000)
@@ -296,12 +313,16 @@ export function useElevenLabsTTS() {
         }
 
         audioBuf = (await res.arrayBuffer()).slice(0)
-        await db.ttsCache.put({ key, audio: audioBuf, createdAt: Date.now() })
 
-        if (availableRef.current === null) {
-          availableRef.current = true
-          setBadge('human')
-        }
+        // Store in memory cache immediately (synchronous — no blocking)
+        _memCache.set(key, audioBuf)
+
+        // Persist to Dexie fire-and-forget — NEVER await this before playing audio.
+        // Dexie writes can block if IndexedDB has a write lock from concurrent prefetch;
+        // the audio plays without waiting, and Dexie catches up in the background.
+        db.ttsCache.put({ key, audio: audioBuf, createdAt: Date.now() }).catch(() => {})
+
+        if (availableRef.current === null) { availableRef.current = true; setBadge('human') }
       }
 
       if (abortRef.current) { setSpeaking(false); return 'ok' }
@@ -314,10 +335,10 @@ export function useElevenLabsTTS() {
 
       await new Promise<void>(resolve => {
         // Safety cap — fires when onended never arrives (known browser bug on short clips).
-        // Formula: text.length * 100ms per char gives ~2-3s of headroom after audio ends.
-        // Floor at 3500ms (not 8000) — 8000ms created a perceived 6-second "hang" for
-        // short lines like "Alright. Here goes." where the actual audio is only ~1.5s.
-        const estMs = Math.max(text.length * 100, 3500)
+        // Floor at 2500ms — "Alright. Here goes." is ~1.5s of audio; 3500ms made the demo
+        // feel frozen for 2 extra seconds after each short line. Any real-length line still
+        // gets text.length * 90ms which is comfortably longer than its audio duration.
+        const estMs = Math.max(text.length * 90, 2500)
         const safety = setTimeout(() => { URL.revokeObjectURL(url); resolve() }, estMs)
         const done = () => { clearTimeout(safety); URL.revokeObjectURL(url); resolve() }
         el.onended  = done
@@ -355,8 +376,8 @@ export function useElevenLabsTTS() {
     return speakRaw(text, voiceId, modelId, style, stability, output_format, onPlayStart)
   }, [speakRaw])
 
-  // Fire-and-forget cache warmer — fetches audio into Dexie without playing it.
-  // Call this for upcoming lines while the current line is playing.
+  // Fire-and-forget cache warmer — fetches audio for upcoming lines while current line plays.
+  // Writes to _memCache (synchronous) then Dexie (background, non-blocking).
   const prefetch = useCallback(async (
     text: string,
     role: 'g' | 'l',
@@ -373,7 +394,14 @@ export function useElevenLabsTTS() {
     const { stability, style, output_format } = emotionSettings(speedHint, baseStability, isEnglish)
     const key = cacheKey(voiceId, modelId, output_format, text)
     try {
-      if (await db.ttsCache.get(key)) return
+      // Skip if already in memory (instant check) or Dexie (2s max)
+      if (_memCache.has(key)) return
+      const dbHit = await Promise.race([
+        db.ttsCache.get(key),
+        new Promise<undefined>(resolve => setTimeout(() => resolve(undefined), 2000)),
+      ])
+      if (dbHit) { _memCache.set(key, dbHit.audio); return }
+
       const ctrl = new AbortController()
       const tOut = setTimeout(() => ctrl.abort(), 15000)
       let res: Response
@@ -387,7 +415,8 @@ export function useElevenLabsTTS() {
       clearTimeout(tOut)
       if (!res.ok) return
       const buf = (await res.arrayBuffer()).slice(0)
-      await db.ttsCache.put({ key, audio: buf, createdAt: Date.now() })
+      _memCache.set(key, buf)
+      db.ttsCache.put({ key, audio: buf, createdAt: Date.now() }).catch(() => {})
     } catch { /* silent */ }
   }, [])
 
