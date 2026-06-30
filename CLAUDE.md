@@ -68,15 +68,16 @@ or via CLI: `npx wrangler pages secret put KEY_NAME --project-name cognitive-nav
 
 ## Cloudflare Pages Functions
 
-| File | Purpose |
-|------|---------|
-| `functions/api/evaluate.ts` | Groq LLM depth evaluation proxy — handles questions in any language |
-| `functions/api/whisper.ts` | Groq Whisper STT — accepts `{ audioBase64, mimeType, language? }` |
-| `functions/api/tts.ts` | ElevenLabs TTS proxy — accepts `{ text, voice_id, model_id, style, stability, output_format }`, returns audio/mpeg at requested bitrate |
-| `functions/api/cartesia-tts.ts` | Cartesia Sonic-2 TTS proxy — accepts `{ text, voice_id, language, speed, emotion[] }`, returns audio/mpeg (no cache) |
-| `functions/api/guide-qa.ts` | Interactive guide Q&A — accepts `{ question, lang }`, answers in character as the Guide, max 120 tokens |
-| `functions/api/openai-tts.ts` | OpenAI tts-1-hd proxy — accepts `{ text, voice, speed }`, returns audio/mpeg (cached in Dexie `oa1:` prefix) |
-| `functions/api/context.ts` | Depth-aware context generator — accepts `{ topic, gate, lang }`, returns `{ hook, facts[], searches[] }` via Groq. Gate 0=mechanism, 1=failure modes, 2=philosophy. |
+| File | Endpoint | Purpose |
+|------|----------|---------|
+| `functions/api/evaluate.ts` | `POST /api/evaluate` | Groq LLM depth evaluation proxy — enhanced with diff-dx Gate 2 and management Gate 3 clinical criteria |
+| `functions/api/whisper.ts` | `POST /api/whisper` | Groq Whisper STT — accepts `{ audioBase64, mimeType, language? }` |
+| `functions/api/tts.ts` | `POST /api/tts` | ElevenLabs TTS proxy — accepts `{ text, voice_id, model_id, style, stability, output_format }`, returns audio/mpeg |
+| `functions/api/cartesia-tts.ts` | `POST /api/cartesia-tts` | Cartesia Sonic-2 TTS proxy — accepts `{ text, voice_id, language, speed, emotion[] }`, returns audio/mpeg (no cache) |
+| `functions/api/guide-qa.ts` | `POST /api/guide-qa` | Interactive guide Q&A — accepts `{ question, lang }`, answers in character as the Guide, max 120 tokens |
+| `functions/api/openai-tts.ts` | `POST /api/openai-tts` | OpenAI tts-1-hd proxy — accepts `{ text, voice, speed }`, returns audio/mpeg (cached in Dexie `oa2:` prefix) |
+| `functions/api/context.ts` | `POST /api/context` | Depth-aware context generator — accepts `{ topic, gate, lang }`, returns `{ hook, facts[], searches[] }` via Groq |
+| `functions/api/vignette.ts` | `POST /api/vignette` | Clinical case vignette generator — accepts `{ topic, examBoard }`, returns `{ vignette, differentials[] }` via Groq |
 
 ## Voice input UI (Wispr-style — redesigned 2026-06-05)
 
@@ -358,9 +359,11 @@ Score = quality of inquiry practice, not intelligence.
 
 | File | Purpose |
 |------|---------|
-| `functions/api/evaluate.ts` | Groq LLM evaluation |
+| `functions/api/evaluate.ts` | Groq LLM evaluation (enhanced: diff-dx + management gates) |
 | `functions/api/tts.ts` | ElevenLabs TTS proxy |
 | `functions/api/whisper.ts` | Groq Whisper STT proxy |
+| `functions/api/vignette.ts` | Clinical vignette generator — case-based session mode |
+| `src/core/clinicalBodySystems.ts` | 13 body system types, color tokens, `classifyTopicToSystem()` |
 | `src/lib/db.ts` | Dexie schema v2 (5 tables including ttsCache) |
 | `src/lib/useElevenLabsTTS.ts` | EL TTS hook with Dexie cache, ref-based availability |
 | `src/lib/useKokoroTTS.ts` | Kokoro WASM TTS, module singleton |
@@ -455,6 +458,49 @@ Save & Preview buttons moved to the **top** of VoiceSettings (directly below the
 - **ElevenLabs emotion tuning**: `style` drives expressiveness (0=monotone, 1=very expressive). For educational mentoring, `style: 0.68–0.72` for teaching, `style: 0.90–0.92` for celebration. `similarity_boost: 0.92` for authentic voice reproduction.
 - **Narration restarts from Dexie prefs loading**: Do NOT put `prefs.*` or `kokoro.ready` in the narration effect deps. Dexie loads saved prefs ~50ms after mount — if any of these are deps, the narration effect re-fires mid-phase whenever prefs change, causing the demo to loop on the current phase forever. Use `prefsRef.current` and `kokoroReadyRef.current` inside the effect instead.
 - **elVoiceName() must match actual EL voices**: if voice IDs change (e.g. en-GB updated from Dorothy/George to Alice/Daniel), update both `pickVoiceForLang` in `useElevenLabsTTS.ts` AND `elVoiceName()` in `DemoFlow.tsx`. The subtitle row reads from `elVoiceName` — a mismatch makes the display show the wrong voice name while a different one speaks.
+
+## Clinical Crucible — Release 2.3 (2026-06-30)
+
+Five new features shipped as one deploy. All live at https://cognitive-nav.pages.dev.
+
+### Case-based sessions
+
+- Home.tsx: "Session mode" toggle (Topic-based / Case-based) shown in Clinical mode
+- Selecting "Case-based" triggers `fetchVignette(topic, examBoard)` → `/api/vignette`
+- Debounced 900ms auto-fetch when topic changes while case-based mode is active
+- Vignette card rendered in Home before suggestions (shimmer loading + ↻ regenerate button)
+- `functions/api/vignette.ts`: Groq → `{ vignette: string, differentials: string[] }`. Board-aware style: USMLE gets Step 2-format 3-4 sentence case, NEET UG gets mechanism-depth case.
+- Vignette injected into `evaluate.ts` user message as `CLINICAL VIGNETTE` block
+- Shown in PrickLoop.tsx above the question input throughout the session
+
+### Differential diagnosis gate (enhanced evaluate.ts clinical Gate 2)
+
+Clinical Gate 2 now promotes questions that:
+- Name a competing diagnosis and the one distinguishing finding
+- Identify a condition that changes how you interpret a clinical finding
+- Name a specific clinical population or edge case where the mechanism differs
+
+### Management philosophy gate (enhanced evaluate.ts clinical Gate 3)
+
+Applicable to neet-ss, usmle-2, usmle-3. Gate 3 benefits from questions probing:
+- WHY a treatment threshold was set (not just what it is)
+- What competing management frameworks (e.g. conservative vs surgical) reveal about the disease model
+
+### Performance by body system (History.tsx)
+
+- `src/core/clinicalBodySystems.ts`: 13 BodySystem types, BODY_SYSTEM_COLORS map, `classifyTopicToSystem(topic)` — keyword-regex maps topic string to system
+- `PerformanceBySystem` component in History.tsx — appears above session list in clinical mode
+- Shows a 2-3 column grid of colored system cards, each with highest depth reached + session count
+- Only shown for clinical sessions with at least one scored question
+
+### Session type fields
+
+`Session` type (types.ts) now has:
+- `sessionMode?: 'topic' | 'case'` — default `'topic'`
+- `vignette?: string` — the generated case text; travels with session for display in PrickLoop
+
+`EvaluateRequest` (types.ts):
+- `vignette?: string` — passed through api.ts to evaluate.ts; injected into LLM user message when present
 
 ## Vedic foundation
 
