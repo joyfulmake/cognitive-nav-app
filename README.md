@@ -4,7 +4,7 @@
 
 A depth-graded epistemic engine that trains you to ask better questions — not find better answers. Built on 70 years of neuroscience: five qualifying questions at a depth wires that thinking pattern permanently. The AI never answers. It only measures how deep your question goes, and points precisely at what's missing.
 
-**Live:** https://cognitive-nav.netlify.app
+**Live:** https://cognitive-nav.pages.dev
 
 ---
 
@@ -79,6 +79,7 @@ src/
 │   └── VoiceSettings.tsx     # Voice picker UI (Guide + Learner + presets)
 ├── core/
 │   ├── depthRubric.ts        # Layer metadata, gate definitions, scoring
+│   ├── clinicalBodySystems.ts # 13 body systems, color tokens, classifyTopicToSystem()
 │   └── types.ts              # All shared types
 ├── lib/
 │   ├── useElevenLabsTTS.ts   # EL TTS — emotion-aware, accent-aware, Dexie cache
@@ -95,21 +96,25 @@ src/
 └── stores/
     └── sessionStore.ts       # Session state, gate logic, Dexie persistence
 
-netlify/functions/
-├── evaluate.ts               # Groq evaluation proxy
+functions/api/
+├── evaluate.ts               # Groq evaluation proxy (+ diff-dx & management clinical gates)
 ├── tts.ts                    # ElevenLabs TTS proxy
 ├── openai-tts.ts             # OpenAI TTS proxy
 ├── cartesia-tts.ts           # Cartesia Sonic-2 proxy
 ├── whisper.ts                # Groq Whisper STT proxy
 ├── guide-qa.ts               # Interactive guide Q&A (in-demo)
-└── context.ts                # Depth-aware context generator
+├── context.ts                # Depth-aware context generator
+└── vignette.ts               # Clinical case vignette generator (case-based session mode)
 ```
 
 ---
 
 ## Environment variables
 
-Set in Netlify dashboard → Site configuration → Environment variables.
+Set via Cloudflare dashboard or CLI:
+```bash
+npx wrangler pages secret put GROQ_API_KEY --project-name cognitive-nav
+```
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
@@ -127,22 +132,13 @@ Groq free tier: 14k requests/day. ElevenLabs: 10k chars/month. Cartesia: 10k cha
 ## Local development
 
 ```bash
-# Clone and install
-git clone <repo-url>
-cd cognitive-nav-app
 npm install
-
-# Start dev server (Vite HMR + Netlify functions)
-npm run dev
-
-# Type-check + build
-npm run build
+npm run dev     # Vite HMR at localhost:5173
+npm run build   # TypeScript check + Vite build → dist/
 ```
 
-The dev server at `localhost:8888` runs both the Vite frontend and Netlify functions via `netlify dev`.
-
-Netlify functions need env vars — put them in a `.env` file at the repo root:
-
+Functions run on Cloudflare Pages locally via `npx wrangler pages dev dist`.
+Put env vars in a `.env` file:
 ```
 GROQ_API_KEY=gsk_...
 ELEVENLABS_API_KEY=...
@@ -154,12 +150,8 @@ ELEVENLABS_API_KEY=...
 
 ```bash
 npm run build
-netlify deploy --prod --dir=dist --no-build
+npx wrangler pages deploy dist --project-name cognitive-nav
 ```
-
-`--no-build` is required in WSL — Netlify's remote build fails due to an extension fetch issue. It uploads the pre-built `dist/` directly. No build minutes consumed.
-
-`netlify env:set` fails on this machine ("Missing required path variable 'account_id'"). Use the Netlify dashboard instead.
 
 ---
 
@@ -185,6 +177,13 @@ The score measures how consistently you reached the depth you chose. Not speed. 
 - Depth-aware context panel (hook + 3 facts + 3 search links per gate)
 - Two app modes: General Epistemic + Clinical Crucible
 - Responsive from 280px (old phones) to 4K
+
+**Clinical Crucible — Release 2.3 (2026-06-30):**
+- Case-based sessions: start from a Groq-generated clinical vignette (USMLE/PLAB format)
+- Enhanced Gate 2: differential diagnosis — name the competing diagnosis and the one finding that breaks the symmetry
+- Enhanced Gate 3: management philosophy — WHY was this treatment threshold set (applies to NEET SS, USMLE 2/3)
+- Performance by body system: History page shows depth reached per system (Cardiovascular, Neurology, etc.) across all clinical sessions
+- `src/core/clinicalBodySystems.ts`: 13 body system types with color tokens and keyword-regex classifier
 
 ---
 
