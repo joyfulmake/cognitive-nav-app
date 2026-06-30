@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { AppMode, ExamBoard, DepthLayer } from '../core/types'
+import type { AppMode, ExamBoard, DepthLayer, SessionMode } from '../core/types'
 import { DEPTH_LAYERS, GATES } from '../core/depthRubric'
 import { useSessionStore } from '../stores/sessionStore'
 import { useUserStore } from '../stores/userStore'
@@ -56,6 +56,10 @@ export function Home() {
   const [examBoard, setExamBoard] = useState<ExamBoard>(preferredExamBoard)
   const [targetDepth, setTargetDepth] = useState<DepthLayer>(1)
   const [showRules, setShowRules] = useState(false)
+  const [sessionMode, setSessionMode] = useState<SessionMode>('topic')
+  const [vignette, setVignette] = useState<string | null>(null)
+  const [vignetteLoading, setVignetteLoading] = useState(false)
+  const vignetteTopicRef = useRef<string>('')
   const topicInputRef = useRef<HTMLInputElement>(null)
   const voiceBaseRef  = useRef('')   // text in field at the moment mic was clicked
   // onResult: called when Web Speech finalises OR Whisper returns — append to field
@@ -90,6 +94,26 @@ export function Home() {
     [appMode, examBoard]
   )
 
+  const fetchVignette = useCallback(async (t: string, board: ExamBoard) => {
+    if (!t.trim() || vignetteTopicRef.current === t) return
+    vignetteTopicRef.current = t
+    setVignetteLoading(true)
+    setVignette(null)
+    try {
+      const res = await fetch('/.netlify/functions/vignette', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic: t.trim(), examBoard: board }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setVignette(data.vignette ?? null)
+      }
+    } catch { /* silent */ } finally {
+      setVignetteLoading(false)
+    }
+  }, [])
+
   const handleStart = async () => {
     if (!topic.trim()) return
     let uid = userId
@@ -100,7 +124,9 @@ export function Home() {
     const session = startSession(
       topic.trim(), appMode, targetDepth,
       appMode === 'clinical' ? examBoard : undefined,
-      uid ?? undefined
+      uid ?? undefined,
+      appMode === 'clinical' && sessionMode === 'case' && vignette ? vignette : undefined,
+      appMode === 'clinical' ? sessionMode : 'topic',
     )
     navigate(`/session/${session.id}`)
   }
@@ -118,13 +144,23 @@ export function Home() {
 
   useEffect(() => {
     if (tourDismissed) return
-    // After 2.2s scroll to demo and advance tour
     const t1 = setTimeout(() => {
       setTourStep(1)
       demoSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 2200)
     return () => clearTimeout(t1)
   }, [tourDismissed]) // eslint-disable-line
+
+  // Auto-fetch vignette when topic + case-based mode is active
+  useEffect(() => {
+    if (appMode !== 'clinical' || sessionMode !== 'case' || !topic.trim()) {
+      setVignette(null)
+      vignetteTopicRef.current = ''
+      return
+    }
+    const t = setTimeout(() => fetchVignette(topic.trim(), examBoard), 900)
+    return () => clearTimeout(t)
+  }, [topic, appMode, sessionMode, examBoard, fetchVignette])
 
   return (
     <div className="min-h-screen">
@@ -234,21 +270,62 @@ export function Home() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.05 }}
-          className="mb-10"
+          className="mb-14"
           style={{ scrollMarginTop: '1.5rem' }}
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="font-mono text-xs font-bold tracking-widest uppercase" style={{ color: targetMeta.color }}>
-              Live demo · see it play
+          {/* Section header */}
+          <div className="text-center mb-7">
+            <div className="inline-flex items-center gap-2 mb-3">
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: targetMeta.color }}
+              />
+              <span className="font-mono text-xs font-bold tracking-[0.2em] uppercase"
+                style={{ color: targetMeta.color }}>
+                Live · Interactive
+              </span>
+              <motion.div
+                animate={{ opacity: [0.5, 1, 0.5] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: targetMeta.color }}
+              />
             </div>
-            <motion.div
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: targetMeta.color }}
-            />
+            <h2 className="font-display font-extrabold text-ink leading-tight mb-2"
+              style={{ fontSize: 'clamp(1.35rem, 4vw, 1.8rem)', letterSpacing: '-0.015em' }}>
+              See the full learning loop
+            </h2>
+            <p className="font-sans text-sm leading-relaxed" style={{ color: '#8a7d6e', maxWidth: 380, margin: '0 auto' }}>
+              Topic → depth choice → questions → gate mastery → completion.
+              {' '}Click to watch it run live in your browser.
+            </p>
           </div>
+
+          {/* Demo card */}
           <DemoFlow appMode={appMode} />
+
+          {/* Feature badges below the demo */}
+          <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
+            {[
+              { label: '18 languages', icon: '🌐' },
+              { label: 'Voice narration', icon: '🎙' },
+              { label: 'No login needed', icon: '⚡' },
+              { label: 'Works offline', icon: '📶' },
+            ].map(({ label, icon }) => (
+              <div key={label}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full font-mono text-xs"
+                style={{
+                  background: `${targetMeta.color}0d`,
+                  color: '#8a7d6e',
+                  border: `1px solid ${targetMeta.color}22`,
+                }}>
+                <span>{icon}</span>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
         </motion.section>
 
         {/* ── THE CORE IDEA ── */}
@@ -351,7 +428,7 @@ export function Home() {
           </p>
         </motion.section>
 
-        {/* ── EXAM BOARD ── */}
+        {/* ── EXAM BOARD + SESSION MODE ── */}
         <AnimatePresence>
           {appMode === 'clinical' && (
             <motion.section
@@ -375,6 +452,40 @@ export function Home() {
               >
                 {EXAM_BOARDS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
               </select>
+
+              {/* Session mode — Topic vs Case-based */}
+              <div className="mt-4">
+                <div className="font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
+                  Session mode
+                </div>
+                <div className="flex gap-2">
+                  {([
+                    { id: 'topic', label: 'Topic-based', desc: 'Ask freely about a topic' },
+                    { id: 'case',  label: 'Case-based',  desc: 'Start from a clinical vignette' },
+                  ] as { id: SessionMode; label: string; desc: string }[]).map(m => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => setSessionMode(m.id)}
+                      className="flex-1 py-3 px-4 rounded-2xl text-left transition-all"
+                      style={{
+                        background: sessionMode === m.id ? targetMeta.color : 'linear-gradient(135deg, #fffcf4 0%, #faf4e6 100%)',
+                        border: `1.5px solid ${sessionMode === m.id ? targetMeta.color : 'rgba(26,24,37,0.09)'}`,
+                        boxShadow: sessionMode === m.id ? `0 2px 12px ${targetMeta.color}30` : 'none',
+                      }}
+                    >
+                      <div className="font-sans text-sm font-bold"
+                        style={{ color: sessionMode === m.id ? '#fff' : '#1c1a14' }}>
+                        {m.label}
+                      </div>
+                      <div className="font-sans text-xs mt-0.5"
+                        style={{ color: sessionMode === m.id ? 'rgba(255,255,255,0.65)' : '#8a7d6e' }}>
+                        {m.desc}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
             </motion.section>
           )}
         </AnimatePresence>
@@ -755,6 +866,60 @@ export function Home() {
                         Listening — speak, then pause
                       </span>
                     </>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Vignette — shown in case-based clinical mode */}
+          <AnimatePresence>
+            {appMode === 'clinical' && sessionMode === 'case' && (vignetteLoading || vignette) && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden mt-4"
+              >
+                <div className="rounded-2xl p-5"
+                  style={{
+                    background: `linear-gradient(135deg, ${targetMeta.bgColor} 0%, #fffcf4 100%)`,
+                    border: `1.5px solid ${targetMeta.color}30`,
+                  }}>
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="font-mono text-xs font-bold tracking-widest uppercase"
+                      style={{ color: targetMeta.color }}>
+                      ⚕ Clinical vignette
+                    </span>
+                    {vignetteLoading && (
+                      <motion.div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: targetMeta.color }}
+                        animate={{ scale: [1, 0.5, 1], opacity: [1, 0.3, 1] }}
+                        transition={{ duration: 0.9, repeat: Infinity }}
+                      />
+                    )}
+                  </div>
+                  {vignetteLoading ? (
+                    <div className="flex flex-col gap-2">
+                      {[80, 100, 65].map((w, i) => (
+                        <div key={i} className="h-3 rounded shimmer" style={{ width: `${w}%` }} />
+                      ))}
+                    </div>
+                  ) : vignette && (
+                    <p className="font-sans text-sm leading-[1.85]" style={{ color: '#4a3f30' }}>
+                      {vignette}
+                    </p>
+                  )}
+                  {vignette && !vignetteLoading && (
+                    <button
+                      type="button"
+                      onClick={() => { vignetteTopicRef.current = ''; fetchVignette(topic.trim(), examBoard) }}
+                      className="mt-3 font-mono text-xs transition-colors hover:opacity-70"
+                      style={{ color: targetMeta.color }}
+                    >
+                      ↻ regenerate case
+                    </button>
                   )}
                 </div>
               </motion.div>

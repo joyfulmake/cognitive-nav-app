@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { useSessionStore } from '../stores/sessionStore'
 import { DEPTH_LAYERS, computePracticeScore, isMasteryComplete, MASTERY_REQUIRED } from '../core/depthRubric'
 import type { DepthLayer, Session } from '../core/types'
+import { classifyTopicToSystem, BODY_SYSTEM_COLORS, type BodySystem } from '../core/clinicalBodySystems'
 
 type Filter = 'all' | 'epistemic' | 'clinical' | 'complete' | 'inprogress'
 
@@ -194,6 +195,57 @@ function ConceptCoverage({ sessions }: { sessions: Session[] }) {
   )
 }
 
+function PerformanceBySystem({ sessions }: { sessions: Session[] }) {
+  const clinical = sessions.filter(s => s.appMode === 'clinical' && s.trajectoryVector.length > 0)
+  if (clinical.length === 0) return null
+
+  const map: Record<string, { maxDepth: DepthLayer; count: number }> = {}
+  for (const s of clinical) {
+    const sys = classifyTopicToSystem(s.topic)
+    const maxD = Math.max(...s.trajectoryVector) as DepthLayer
+    if (!map[sys]) map[sys] = { maxDepth: 1, count: 0 }
+    map[sys].maxDepth = Math.max(map[sys].maxDepth, maxD) as DepthLayer
+    map[sys].count++
+  }
+
+  const entries = (Object.entries(map) as [BodySystem, { maxDepth: DepthLayer; count: number }][])
+    .sort((a, b) => b[1].maxDepth - a[1].maxDepth)
+
+  return (
+    <div className="border-2 border-ink p-6">
+      <div className="font-mono text-xs text-muted uppercase tracking-widest mb-4">
+        Clinical · Performance by body system
+      </div>
+      <div className="grid grid-cols-2 min-[440px]:grid-cols-3 gap-2">
+        {entries.map(([sys, { maxDepth, count }]) => {
+          const depthMeta = DEPTH_LAYERS[maxDepth]
+          const { color, bg } = BODY_SYSTEM_COLORS[sys]
+          return (
+            <div key={sys}
+              className="rounded-xl p-3 flex flex-col gap-1"
+              style={{ backgroundColor: bg, border: `1.5px solid ${color}30` }}>
+              <div className="font-sans text-xs font-bold leading-tight" style={{ color }}>
+                {sys}
+              </div>
+              <div className="flex items-center justify-between mt-1">
+                <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded"
+                  style={{ backgroundColor: depthMeta.bgColor, color: depthMeta.color, border: `1px solid ${depthMeta.color}40` }}>
+                  L{maxDepth} {depthMeta.tag}
+                </span>
+                <span className="font-mono text-xs text-muted">{count}s</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+      <p className="font-sans text-xs text-muted mt-3 leading-relaxed">
+        Highest depth reached per system across all clinical sessions.
+        Systems without sessions are not shown.
+      </p>
+    </div>
+  )
+}
+
 export function History() {
   const { sessions } = useSessionStore()
   const [filter, setFilter] = useState<Filter>('all')
@@ -339,6 +391,9 @@ export function History() {
 
             {/* Concept coverage */}
             <ConceptCoverage sessions={sessions} />
+
+            {/* Performance by body system — clinical sessions only */}
+            <PerformanceBySystem sessions={sessions} />
 
           </div>
         )}

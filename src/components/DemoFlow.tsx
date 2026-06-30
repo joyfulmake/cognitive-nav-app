@@ -6,6 +6,7 @@ import { useVoiceSettings, SUPPORTED_LANGUAGES } from '../lib/useVoiceSettings'
 import { useKokoroTTS } from '../lib/useKokoroTTS'
 import { useElevenLabsTTS, EL_VOICES } from '../lib/useElevenLabsTTS'
 import { useOpenAITTS } from '../lib/useOpenAITTS'
+import { useCartesiaTTS, CARTESIA_VOICES } from '../lib/useCartesiaTTS'
 import { VoiceSettings } from './VoiceSettings'
 
 // ─── Typewriter ───────────────────────────────────────────────────────────────
@@ -1313,10 +1314,12 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
   const kokoro = useKokoroTTS()
   const elevenlabs = useElevenLabsTTS()
   const openaiTTS = useOpenAITTS()
+  const cartesia = useCartesiaTTS()
   // Tier 0: OpenAI tts-1-hd (Nova/Onyx) — requires OPENAI_API_KEY in Netlify env
-  // Tier 1: ElevenLabs (Matilda/Liam/Dorothy/George) — requires ELEVENLABS_API_KEY
-  // Tier 2: Kokoro WASM — English only, free, offline after first load
-  // Tier 3: Web Speech API — always available, quality varies by browser
+  // Tier 1: ElevenLabs (Matilda/Liam/etc.) — requires ELEVENLABS_API_KEY
+  // Tier 2: Cartesia Sonic-2 (Helpful Woman/Newsman) — requires CARTESIA_API_KEY
+  // Tier 3: Kokoro WASM — English only, free, offline after first load
+  // Tier 4: Web Speech API — always available, quality varies by browser
 
   // Keep voices in a ref — callbacks see the latest list without re-triggering effects
   const voicesRef = useRef<SpeechSynthesisVoice[]>(voices)
@@ -1427,7 +1430,8 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
     }
 
     // ── Async narration loop ───────────────────────────────────────────────────
-    const oaiCanTry = openaiTTS.canTry()
+    const oaiCanTry      = openaiTTS.canTry()
+    const cartesiaCanTry = cartesia.canTry()
     const elGuideOverride   = currentPrefs.elGuideVoiceId   || undefined
     const elLearnerOverride = currentPrefs.elLearnerVoiceId || undefined
     const isNonEnglish = langCode !== 'en'
@@ -1513,7 +1517,22 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
           }
         }
 
-        // Tier 2: Kokoro — AI WASM (English only)
+        // Tier 2: Cartesia Sonic-2 — multilingual, ultra-low latency
+        // Same Guide/Learner voice pair across all phases → consistent speaker continuity
+        if (!spoken && cartesiaCanTry) {
+          let audioStarted = false
+          const rRaw = await Promise.race([
+            cartesia.speak(text, role, langCode, s, () => {
+              setSpeakerInfo({ role, text })
+              audioStarted = true
+            }),
+            makeTierTimeout(tierCap),
+          ])
+          const r = rRaw === 'timeout' ? 'error' : rRaw
+          if (r === 'ok' && audioStarted) spoken = true
+        }
+
+        // Tier 3: Kokoro — AI WASM (English only)
         if (!spoken && kokoroForLocale) {
           setSpeakerInfo({ role, text })
           await Promise.race([
@@ -1523,7 +1542,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
           spoken = true
         }
 
-        // Tier 3: Web Speech — always available
+        // Tier 4: Web Speech — always available
         if (!spoken) {
           setSpeakerInfo({ role, text })
           await Promise.race([
@@ -1565,6 +1584,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
       kokoro.stop()
       elevenlabs.stop()
       openaiTTS.stop()
+      cartesia.stop()
       setSpeakerInfo(null)
       setSpotlightOverride(null)
     }
@@ -1618,24 +1638,106 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
   }, [guideQuestion, guideLoading, effectiveLang, elevenlabs])
 
   if (!open) {
+    const steps = ['Topic', 'Depth', 'First question', 'Gate 1', 'Gate 2', 'Complete']
     return (
-      <motion.button onClick={handleOpen} whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }}
-        className="w-full rounded-2xl border-2 border-dashed border-line p-5 flex items-center gap-4 group hover:border-ink transition-all"
-        style={{ background: 'linear-gradient(135deg, #fff 0%, #faf8f4 100%)' }}
+      <motion.button
+        onClick={handleOpen}
+        whileHover={{ scale: 1.008, y: -2 }}
+        whileTap={{ scale: 0.996 }}
+        className="w-full rounded-3xl overflow-hidden text-left group"
+        style={{
+          background: `linear-gradient(145deg, #1c1a14 0%, #2a261d 60%, ${targetMeta.color}22 100%)`,
+          boxShadow: `0 8px 40px rgba(28,26,20,0.22), 0 2px 8px rgba(28,26,20,0.12), 0 0 0 1px rgba(255,255,255,0.06)`,
+        }}
       >
-        <motion.div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 text-lg"
-          style={{ backgroundColor: targetMeta.bgColor, border: `2px solid ${targetMeta.color}` }}
-          animate={{ scale: [1, 1.08, 1] }} transition={{ duration: 2.5, repeat: Infinity }}>▶</motion.div>
-        <div className="text-left flex-1">
-          <div className="font-sans text-sm font-bold text-ink group-hover:opacity-80 transition-opacity leading-tight">
-            Watch the full game loop
+        {/* Ambient glow layer */}
+        <div aria-hidden style={{
+          position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none',
+          background: `radial-gradient(ellipse 70% 55% at 50% 100%, ${targetMeta.color}28, transparent)`,
+          transition: 'opacity 0.4s',
+        }} className="group-hover:opacity-150" />
+
+        {/* Main body */}
+        <div className="relative px-8 pt-10 pb-7 flex flex-col items-center gap-6">
+
+          {/* Big play button */}
+          <div className="relative flex items-center justify-center">
+            <motion.div
+              animate={{ scale: [1, 1.14, 1], opacity: [0.35, 0.55, 0.35] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+              style={{
+                position: 'absolute', width: 108, height: 108, borderRadius: '50%',
+                border: `1.5px solid ${targetMeta.color}`,
+              }}
+            />
+            <motion.div
+              animate={{ scale: [1, 1.06, 1], opacity: [0.55, 0.8, 0.55] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 0.5 }}
+              style={{
+                position: 'absolute', width: 82, height: 82, borderRadius: '50%',
+                border: `1.5px solid ${targetMeta.color}88`,
+              }}
+            />
+            <motion.div
+              className="relative w-16 h-16 rounded-full flex items-center justify-center"
+              style={{
+                background: `linear-gradient(135deg, ${targetMeta.color} 0%, ${targetMeta.color}cc 100%)`,
+                boxShadow: `0 4px 24px ${targetMeta.color}60, 0 2px 8px ${targetMeta.color}40`,
+              }}
+              animate={{ boxShadow: [
+                `0 4px 24px ${targetMeta.color}40, 0 2px 8px ${targetMeta.color}28`,
+                `0 6px 32px ${targetMeta.color}70, 0 2px 12px ${targetMeta.color}50`,
+                `0 4px 24px ${targetMeta.color}40, 0 2px 8px ${targetMeta.color}28`,
+              ]}}
+              transition={{ duration: 3, repeat: Infinity }}
+            >
+              <span style={{ fontSize: 22, color: '#fff', marginLeft: 3 }}>▶</span>
+            </motion.div>
           </div>
-          <div className="font-sans text-xs text-muted mt-1 leading-[1.65]">
-            Topic selection → questions → mastery building → gate cleared → completion
-            {hasSpeech && <span className="ml-1.5 font-medium" style={{ color: targetMeta.color }}>· with narration</span>}
+
+          {/* Title */}
+          <div className="text-center">
+            <div className="font-display font-extrabold text-white leading-tight mb-2"
+              style={{ fontSize: 'clamp(1.15rem, 3vw, 1.45rem)', letterSpacing: '-0.01em' }}>
+              Interactive product demo
+            </div>
+            <div className="font-sans text-sm leading-relaxed" style={{ color: 'rgba(255,255,255,0.52)' }}>
+              The full game loop — live in your browser
+              {hasSpeech && (
+                <span style={{ color: `${targetMeta.color}cc` }}> · narrated</span>
+              )}
+            </div>
+          </div>
+
+          {/* Phase timeline strip */}
+          <div className="w-full flex items-center justify-center gap-0 flex-wrap" style={{ maxWidth: 480 }}>
+            {steps.map((s, i) => (
+              <div key={s} className="flex items-center">
+                <div className="font-mono text-xs px-2.5 py-1 rounded-full whitespace-nowrap"
+                  style={{
+                    background: i === 0 ? `${targetMeta.color}30` : 'rgba(255,255,255,0.07)',
+                    color: i === 0 ? targetMeta.color : 'rgba(255,255,255,0.38)',
+                    border: `1px solid ${i === 0 ? targetMeta.color + '50' : 'rgba(255,255,255,0.09)'}`,
+                    fontSize: '0.67rem',
+                  }}>
+                  {s}
+                </div>
+                {i < steps.length - 1 && (
+                  <span style={{ color: 'rgba(255,255,255,0.18)', fontSize: 10, margin: '0 2px' }}>→</span>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Footer hint */}
+          <div className="flex items-center gap-4 pb-1">
+            <span className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>≈ 2 min</span>
+            <span style={{ color: 'rgba(255,255,255,0.14)' }}>·</span>
+            <span className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>18 languages</span>
+            <span style={{ color: 'rgba(255,255,255,0.14)' }}>·</span>
+            <span className="font-mono text-xs" style={{ color: 'rgba(255,255,255,0.28)' }}>no login needed</span>
           </div>
         </div>
-        <span className="font-mono text-xs text-muted group-hover:text-ink transition-colors flex-shrink-0">Play →</span>
       </motion.button>
     )
   }
@@ -1827,13 +1929,28 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
                 </motion.span>
               </span>
             )}
-            {openaiTTS.badge === null && elevenlabs.badge === null && kokoro.ready && !kokoro.loading && (
+            {/* Tier 2: Cartesia badge (only when OpenAI + EL not active) */}
+            {openaiTTS.badge === null && elevenlabs.badge === null && cartesia.badge === 'sonic' && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="font-mono text-xs font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  background: `linear-gradient(90deg, ${targetMeta.color}22, ${targetMeta.color}14)`,
+                  color: targetMeta.color,
+                  border: `1px solid ${targetMeta.color}40`,
+                  boxShadow: `0 0 8px ${targetMeta.color}18`,
+                }}>
+                ✦ {CARTESIA_VOICES.guide.name} &amp; {CARTESIA_VOICES.learner.name} · Sonic
+              </motion.span>
+            )}
+            {openaiTTS.badge === null && elevenlabs.badge === null && cartesia.badge === null && kokoro.ready && !kokoro.loading && (
               <span className="font-mono text-xs font-bold px-1.5 py-0.5 rounded"
                 style={{ backgroundColor: `${targetMeta.color}14`, color: targetMeta.color }}>
                 Neural voice ✦
               </span>
             )}
-            {openaiTTS.badge === null && elevenlabs.badge === null && !kokoro.ready && !kokoro.loading && (
+            {openaiTTS.badge === null && elevenlabs.badge === null && cartesia.badge === null && !kokoro.ready && !kokoro.loading && (
               <button type="button" onClick={() => kokoro.load()}
                 className="font-mono text-xs font-bold px-2 py-0.5 rounded transition-all"
                 style={{ backgroundColor: `${targetMeta.color}14`, color: targetMeta.color, border: `1px solid ${targetMeta.color}35` }}

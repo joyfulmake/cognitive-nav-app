@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 
 // Cartesia public voice IDs — find more at https://play.cartesia.ai/voices
 // Update these IDs if voices are renamed; the sonic-2 model is stable.
@@ -19,9 +19,15 @@ function registerForHint(s: number | undefined): { speed: string; emotion: strin
 
 export function useCartesiaTTS() {
   const [speaking, setSpeaking]   = useState(false)
+  const [badge, setBadge]         = useState<'sonic' | null>(null)
   const availableRef = useRef<boolean | null>(null)
   const audioRef     = useRef<HTMLAudioElement | null>(null)
   const abortRef     = useRef(false)
+
+  // Sync badge with availability (e.g. when stop() is called externally)
+  useEffect(() => {
+    setBadge(availableRef.current === true ? 'sonic' : null)
+  }, []) // eslint-disable-line
 
   const canTry = () => availableRef.current !== false
 
@@ -60,7 +66,7 @@ export function useCartesiaTTS() {
         return 'error'
       }
 
-      if (availableRef.current === null) availableRef.current = true
+      if (availableRef.current === null) { availableRef.current = true; setBadge('sonic') }
 
       if (abortRef.current) { setSpeaking(false); return 'ok' }
 
@@ -93,6 +99,7 @@ export function useCartesiaTTS() {
 
   return {
     speaking,
+    badge,
     speak,
     stop,
     canTry,

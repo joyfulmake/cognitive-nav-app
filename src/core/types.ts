@@ -37,6 +37,8 @@ export interface Reformulation {
   isResolved: boolean
 }
 
+export type SessionMode = 'topic' | 'case'
+
 export interface Session {
   id: string
   userId: string | null
@@ -52,6 +54,8 @@ export interface Session {
   createdAt: number
   updatedAt: number
   offlineCreated?: boolean
+  sessionMode?: SessionMode
+  vignette?: string
 }
 
 export interface EvaluateRequest {
@@ -63,6 +67,7 @@ export interface EvaluateRequest {
   activeGate: DepthLayer
   reformulationIndex: number
   previousReformulations?: Array<{ question: string; depthScore: DepthLayer }>
+  vignette?: string
 }
 
 export interface EvaluateResponse {

@@ -113,9 +113,9 @@ Set via Netlify dashboard → Site configuration → Environment variables:
 **VoiceSettings.tsx**:
 - Added "AI voice providers" section at top — shows ElevenLabs + Cartesia with purpose + setup instructions
 
-## Voice system — three-tier cascade
+## Voice system — four-tier cascade
 
-Tier 1 → Tier 2 → Tier 3, each a fallback of the previous.
+Tier 0 → Tier 1 → Tier 2 → Tier 3 → Tier 4, each a fallback of the previous.
 
 ### Tier 0: OpenAI tts-1-hd (optional — highest multilingual quality)
 
@@ -182,7 +182,19 @@ Voice design rule: DO NOT use Rachel (21m00Tcm4TlvDq8ikWAM) or Charlie (IKne3meq
 - Audio stored as `ArrayBuffer` in Dexie `ttsCache` — each line generated once, cached forever
 - Demo script ≈ 3k chars, well within ElevenLabs 10k free tier
 
-### Tier 2: Kokoro-82M (browser WASM, free, offline after first load)
+### Tier 2: Cartesia Sonic-2 (DemoFlow narration — 2026-06-30)
+
+`src/lib/useCartesiaTTS.ts` → `netlify/functions/cartesia-tts.ts`
+
+- Requires `CARTESIA_API_KEY` in Netlify env (same key used by EvaluationCard 🔊 button)
+- Guide voice: Helpful Woman `b7d50908-b17c-442d-ad8d-810c63997ed9`; Learner voice: Newsman `694f9389-aac1-45b6-b726-9d9369183238`
+- Consistent voice pair across ALL demo phases (including newly-added `gate1-study`) — solves speaker continuity
+- No Dexie cache in demo narration (same as EvaluationCard); each line fetched live from Cartesia Sonic-2
+- Falls back gracefully to Tier 3 (Kokoro) when `CARTESIA_API_KEY` not set (503/NO_KEY) or on error
+- Badge: `✦ Helpful Woman & Newsman · Sonic` when active
+- **Free tier**: 10k chars/month. One full demo ≈ 5k chars. Two plays per month on free tier.
+
+### Tier 3: Kokoro-82M (browser WASM, free, offline after first load)
 
 `src/lib/useKokoroTTS.ts`
 
@@ -190,11 +202,11 @@ Voice design rule: DO NOT use Rachel (21m00Tcm4TlvDq8ikWAM) or Charlie (IKne3meq
 - Vite alias: `'kokoro-js'` → `node_modules/kokoro-js/dist/kokoro.web.js` (browser WASM build)
 - Model: `onnx-community/Kokoro-82M-v1.0`, dtype `q4` (~45MB, cached in browser Cache API)
 - Guide voice: `af_bella`; Learner voice: `am_adam`; celebration: `af_sky`; reflection: `af_heart`/`am_michael`
-- **English only** — falls back to Tier 3 for other languages
+- **English only** — falls back to Tier 4 for other languages
 - Module-level singleton — model loads once, shared across all components
 - UI: "Upgrade to AI voices ✦" button appears in demo narration row; progress bar during load
 
-### Tier 3: Web Speech API (browser built-in)
+### Tier 4: Web Speech API (browser built-in)
 
 - Always available, no API key, supports all languages
 - Guide/Learner differentiated by pitch/rate adjustments
@@ -253,12 +265,14 @@ Other languages (hi, ta, te, kn, mr, es, pt, fr, de, ar, zh, ja, ko, ru, tr, id)
 
 ```
 for each line:
-  if ElevenLabs configured → speak(text, rachel|charlie, styleHint)
-  else if Kokoro loaded + English → speak(text, voice, speed)
-  else → Web Speech
+  Tier 0: if OpenAI configured  → speak(text, nova|onyx, speedHint)   [cached in Dexie]
+  Tier 1: if ElevenLabs configured → speak(text, role-voice, styleHint) [cached in Dexie]
+  Tier 2: if Cartesia configured → speak(text, HelpfulWoman|Newsman, speedHint) [no cache]
+  Tier 3: if Kokoro loaded + English → speak(text, kokoro-voice, speed)
+  Tier 4: Web Speech API
 ```
 
-`elAvailableRef` is a `useRef` — NOT in effect dependency array. No re-run when EL availability is determined.
+`elAvailableRef` and `cartesia.canTry()` are ref-based — NOT in effect dependency array. No re-run when availability is determined.
 
 ### Spotlight sync
 

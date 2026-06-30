@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Session, AppMode, ExamBoard, DepthLayer, Reformulation } from '../core/types'
+import type { Session, AppMode, ExamBoard, DepthLayer, Reformulation, SessionMode } from '../core/types'
 import { getActiveGate, MASTERY_REQUIRED } from '../core/depthRubric'
 import { saveSession, getAllSessions } from '../lib/db'
 
@@ -8,7 +8,7 @@ interface SessionState {
   sessions: Session[]
   activeSession: Session | null
   loadSessions: () => Promise<void>
-  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string) => Session
+  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string, vignette?: string, sessionMode?: SessionMode) => Session
   addReformulation: (sessionId: string, reformulation: Reformulation) => void
   completeSession: (sessionId: string) => void
   clearActive: () => void
@@ -29,7 +29,7 @@ export const useSessionStore = create<SessionState>()(
         set({ sessions: all })
       },
 
-      startSession: (topic, appMode, targetDepth, examBoard, userId) => {
+      startSession: (topic, appMode, targetDepth, examBoard, userId, vignette, sessionMode) => {
         const session: Session = {
           id: makeId(),
           userId: userId ?? null,
@@ -45,6 +45,8 @@ export const useSessionStore = create<SessionState>()(
           createdAt: Date.now(),
           updatedAt: Date.now(),
           offlineCreated: !navigator.onLine,
+          sessionMode: sessionMode ?? 'topic',
+          vignette,
         }
         saveSession(session)
         set(s => ({ sessions: [session, ...s.sessions], activeSession: session }))

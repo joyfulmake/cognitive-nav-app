@@ -947,6 +947,7 @@ export function PrickLoop({ session, onComplete }: Props) {
           question: r.question,
           depthScore: r.depthScore,
         })),
+        vignette: session.vignette,
       }),
     onSuccess: (data) => {
       setPrevDepth(session.reformulations[session.reformulations.length - 1]?.depthScore ?? null)
@@ -1050,6 +1051,27 @@ export function PrickLoop({ session, onComplete }: Props) {
         targetDepth={session.targetDepth}
         trajectoryVector={session.trajectoryVector}
       />
+
+      {/* Clinical vignette — case-based sessions */}
+      {session.vignette && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-5"
+          style={{
+            background: `linear-gradient(135deg, ${DEPTH_LAYERS[session.targetDepth].bgColor} 0%, #fffcf4 100%)`,
+            border: `1.5px solid ${DEPTH_LAYERS[session.targetDepth].color}28`,
+          }}
+        >
+          <div className="font-mono text-xs font-bold tracking-widest uppercase mb-2"
+            style={{ color: DEPTH_LAYERS[session.targetDepth].color }}>
+            ⚕ Clinical vignette · {session.topic}
+          </div>
+          <p className="font-sans text-sm leading-[1.85]" style={{ color: '#4a3f30' }}>
+            {session.vignette}
+          </p>
+        </motion.div>
+      )}
 
       <div ref={studyPanelRef} style={{ borderRadius: 20 }}>
         <LevelStudyPanel
