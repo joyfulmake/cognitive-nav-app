@@ -8,6 +8,7 @@ import { useUserStore } from '../stores/userStore'
 import { getSuggestions } from '../core/topicSuggestions'
 import { useVoiceInput } from '../lib/useVoiceInput'
 import { DemoFlow } from '../components/DemoFlow'
+import { AppTourCard } from '../components/AppTourCard'
 import { WisdomResources } from '../components/WisdomResources'
 import { AuthPanel } from '../components/AuthPanel'
 
@@ -263,7 +264,17 @@ export function Home() {
           </motion.div>
         </header>
 
-        {/* ── DEMO — first thing after hero ── */}
+        {/* ── APP TOUR — quick visual "what is this?" before the full demo ── */}
+        <motion.section
+          className="mb-10"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.18 }}
+        >
+          <AppTourCard />
+        </motion.section>
+
+        {/* ── DEMO — full interactive learning loop ── */}
         <motion.section
           ref={demoSectionRef}
           id="demo"

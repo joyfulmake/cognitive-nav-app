@@ -81,6 +81,16 @@ Each row: what the feature does, where it lives, what drives it, and its product
 | A-02 | Firebase auth (optional) | As a user, I want my history to sync across devices | `firebase.ts` + `authStore.ts` — graceful stub if not configured | **Live** (optional) |
 | A-03 | Firestore session sync | As an authed user, I want sessions backed up | `firestoreSync.ts` — syncs on session complete or page load | **Live** (when authed) |
 
+### Clinical Crucible — Release 2.3 (2026-06-30)
+
+| ID | Feature | User Story | Implementation | Status |
+|----|---------|-----------|----------------|--------|
+| C-01 | Case-based sessions | As a medical student, I want to start from a clinical vignette to mirror USMLE Step 2 / PLAB format | `vignette.ts` Netlify function; Home.tsx session mode toggle; vignette card in PrickLoop; vignette injected into `evaluate.ts` user message | **Live** |
+| C-02 | Differential diagnosis gate | As a clinical learner, I want Gate 2 to push me to name a competing diagnosis and what breaks the symmetry | Enhanced clinical Gate 2 criteria in `evaluate.ts` system prompt — competing dx, condition that changes finding interpretation, named population edge case | **Live** |
+| C-03 | Management philosophy gate | As an NEET SS / USMLE 2/3 student, I want Gate 3 to probe WHY treatment thresholds are set | Enhanced clinical Gate 3 in `evaluate.ts` — treatment threshold rationale, competing management frameworks. Applies to neet-ss, usmle-2, usmle-3. | **Live** |
+| C-04 | Topic bank with exam-weighted suggestions | As a medical student, I want curated high-yield topics per exam board | `topicSuggestions.ts` topic lists per board; body system classifier on all topics | **Live** |
+| C-05 | Performance by body system | As a clinical learner, I want to see which body systems I've reached L3 on vs still at L1/L2 | `PerformanceBySystem` component in History.tsx; `classifyTopicToSystem()` in `clinicalBodySystems.ts`; 13 systems, colored cards | **Live** |
+
 ### Team / Multi-User (Nyaya Darshana)
 
 | ID | Feature | User Story | Implementation | Status |
@@ -130,17 +140,9 @@ Ordered by estimated value / effort ratio. Not committed dates — ideas for con
 | Vada / Jalpa / Vitanda debate modes | Different structured formats: Vada = truth-seeking, Jalpa = debate to win, Vitanda = pure refutation | `nyayaRules.ts` has mode definitions. UI to be built. |
 | Session invite by link | Join a room via URL | Simple: encode roomId in URL, redirect to Session page with room join flow. |
 
-### Release 2.3 — Clinical Depth Expansion
+### ~~Release 2.3 — Clinical Depth Expansion~~ **SHIPPED 2026-06-30**
 
-**Theme**: Make Clinical Crucible the best-in-class exam prep tool for high-stakes medical exams.
-
-| Idea | What it does | Why |
-|------|-------------|-----|
-| Case-based sessions | Start from a clinical vignette, not just a topic | Mirrors USMLE Step 2 and PLAB format. |
-| Differential diagnosis mode | Questions must eliminate competing diagnoses, not just trace one mechanism | L3 in clinical = holding two diagnoses at once and asking what breaks the symmetry. |
-| Management decision gates | Add a Gate 2.5 for management decisions between mechanism and systems | Particularly relevant for NEET SS and USMLE 2/3. |
-| Topic bank with exam-weighted suggestions | Curate topics by frequency in each exam board's actual question bank | High-yield topic coverage, not just arbitrary curiosity. |
-| Performance by system (cardiology, neuro, etc.) | Show which body systems the user has reached L3 on vs still at L1/L2 | Targeted study: know your weakest system at a glance. |
+All five features live. See `CLAUDE.md#clinical-crucible--release-23-2026-06-30` for implementation detail.
 
 ### Release 2.4 — Voice and Accessibility
 

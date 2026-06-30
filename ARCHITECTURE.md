@@ -272,13 +272,14 @@ Structurally, this keeps things coherent because:
 cognitive-nav-app/
 │
 ├── netlify/functions/
-│   ├── evaluate.ts        LLM depth evaluation proxy (Groq) — multilingual question support
+│   ├── evaluate.ts        LLM depth evaluation proxy (Groq) — multilingual; enhanced diff-dx Gate 2 + management Gate 3
 │   ├── tts.ts             ElevenLabs TTS proxy (emotion-aware, accent-aware)
 │   ├── whisper.ts         Groq Whisper STT proxy
 │   ├── openai-tts.ts      OpenAI tts-1-hd proxy — Nova/Onyx/Shimmer, cached oa2: prefix
 │   ├── cartesia-tts.ts    Cartesia Sonic-2 proxy — session feedback, not cached
 │   ├── context.ts         Depth-aware context generator (Groq) — hook + facts + search links
-│   └── guide-qa.ts        Interactive guide Q&A for demo — answers questions about the app in character
+│   ├── guide-qa.ts        Interactive guide Q&A for demo — answers questions about the app in character
+│   └── vignette.ts        Clinical case vignette generator (Groq) — board-aware 3-4 sentence case + differentials
 │
 ├── src/
 │   ├── App.tsx            Route definitions only
@@ -288,6 +289,7 @@ cognitive-nav-app/
 │   ├── core/
 │   │   ├── types.ts       All TypeScript types (Session, Reformulation, DepthLayer…)
 │   │   ├── depthRubric.ts Layer metadata, gate criteria, scoring functions (pure)
+│   │   ├── clinicalBodySystems.ts  13 BodySystem types, BODY_SYSTEM_COLORS, classifyTopicToSystem()
 │   │   ├── nyayaRules.ts  Nyaya Darshana team debate mode rules
 │   │   └── topicSuggestions.ts  Curated topic lists per mode and exam board
 │   │
