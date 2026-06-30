@@ -49,7 +49,7 @@ export function useCartesiaTTS() {
     const { speed, emotion } = registerForHint(speedHint)
 
     try {
-      const res = await fetch('/.netlify/functions/cartesia-tts', {
+      const res = await fetch('/api/cartesia-tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text, voice_id, language, speed, emotion }),

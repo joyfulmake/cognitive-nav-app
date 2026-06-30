@@ -1,0 +1,8 @@
+name = "cognitive-nav"
+pages_build_output_dir = "dist"
+compatibility_date = "2026-06-30"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production]
+compatibility_date = "2026-06-30"
+compatibility_flags = ["nodejs_compat"]

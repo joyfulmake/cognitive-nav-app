@@ -12,42 +12,23 @@ Depth-graded epistemic engine. Two apps in one: General Epistemic (any topic) + 
 
 ## Live URL
 
-https://cognitive-nav.netlify.app
+https://cognitive-nav.pages.dev
 
-## Netlify site name
+## Cloudflare Pages project
 
-`cognitive-nav` (renamed from `meek-kelpie-ba77c4` on 2026-06-01)
+`cognitive-nav`
 
-## Deploy command (WSL)
+## Deploy command
 
 ```bash
-export NVM_DIR="$HOME/.config/nvm" && . "$NVM_DIR/nvm.sh"
 npm run build
-netlify deploy --prod --dir=dist --no-build
+npx wrangler pages deploy dist --project-name cognitive-nav
 ```
-
-`--no-build` is required — Netlify's remote build step fails in WSL due to an extension fetch issue.
-`--no-build` does NOT consume Netlify build minutes. It just uploads the pre-built `dist/` folder.
-
-## Netlify env var pitfall
-
-`netlify env:set` CLI command fails with "Missing required path variable 'account_id'" on this machine.
-Use the Netlify dashboard (Site configuration → Environment variables) instead.
-
-REST API fallback if needed:
-```bash
-TOKEN=$(cat ~/.config/netlify/config.json | python3 -c "import sys,json; d=json.load(sys.stdin); print(list(d.get('users',{}).values())[0].get('auth',{}).get('token',''))")
-curl -s -X POST "https://api.netlify.com/api/v1/accounts/6a15fb17dfea79da5d94e10a/env?site_id=118a13ef-468c-4e12-aca8-95abed0fe5ca" \
-  -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '[{"key":"KEY_NAME","values":[{"context":"production","value":"VALUE"}]}]'
-```
-
-Env vars require a redeploy to take effect in functions.
 
 ## Required environment variables
 
-Set via Netlify dashboard → Site configuration → Environment variables:
+Set via Cloudflare dashboard → cognitive-nav → Settings → Environment variables,
+or via CLI: `npx wrangler pages secret put KEY_NAME --project-name cognitive-nav`
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
@@ -66,7 +47,7 @@ Set via Netlify dashboard → Site configuration → Environment variables:
 
 ## Cartesia TTS (session feedback voice)
 
-`src/lib/useCartesiaTTS.ts` → `netlify/functions/cartesia-tts.ts`
+`src/lib/useCartesiaTTS.ts` → `functions/api/cartesia-tts.ts`
 
 - Model: `sonic-2`, ultra-low latency (<135ms first chunk)
 - Used in: EvaluationCard (🔊 button reads appreciation + prickText aloud)
@@ -85,17 +66,17 @@ Set via Netlify dashboard → Site configuration → Environment variables:
 - Whisper: `whisper-large-v3-turbo`, accepts base64 audio, returns transcript text
 - Same `GROQ_API_KEY` for both
 
-## Netlify functions
+## Cloudflare Pages Functions
 
 | File | Purpose |
 |------|---------|
-| `netlify/functions/evaluate.ts` | Groq LLM depth evaluation proxy — handles questions in any language |
-| `netlify/functions/whisper.ts` | Groq Whisper STT — accepts `{ audioBase64, mimeType, language? }` |
-| `netlify/functions/tts.ts` | ElevenLabs TTS proxy — accepts `{ text, voice_id, model_id, style, stability, output_format }`, returns audio/mpeg at requested bitrate |
-| `netlify/functions/cartesia-tts.ts` | Cartesia Sonic-2 TTS proxy — accepts `{ text, voice_id, language, speed, emotion[] }`, returns audio/mpeg (no cache) |
-| `netlify/functions/guide-qa.ts` | Interactive guide Q&A — accepts `{ question, lang }`, answers in character as the Guide, max 120 tokens |
-| `netlify/functions/openai-tts.ts` | OpenAI tts-1-hd proxy — accepts `{ text, voice, speed }`, returns audio/mpeg (cached in Dexie `oa1:` prefix) |
-| `netlify/functions/context.ts` | Depth-aware context generator — accepts `{ topic, gate, lang }`, returns `{ hook, facts[], searches[] }` via Groq. Gate 0=mechanism, 1=failure modes, 2=philosophy. |
+| `functions/api/evaluate.ts` | Groq LLM depth evaluation proxy — handles questions in any language |
+| `functions/api/whisper.ts` | Groq Whisper STT — accepts `{ audioBase64, mimeType, language? }` |
+| `functions/api/tts.ts` | ElevenLabs TTS proxy — accepts `{ text, voice_id, model_id, style, stability, output_format }`, returns audio/mpeg at requested bitrate |
+| `functions/api/cartesia-tts.ts` | Cartesia Sonic-2 TTS proxy — accepts `{ text, voice_id, language, speed, emotion[] }`, returns audio/mpeg (no cache) |
+| `functions/api/guide-qa.ts` | Interactive guide Q&A — accepts `{ question, lang }`, answers in character as the Guide, max 120 tokens |
+| `functions/api/openai-tts.ts` | OpenAI tts-1-hd proxy — accepts `{ text, voice, speed }`, returns audio/mpeg (cached in Dexie `oa1:` prefix) |
+| `functions/api/context.ts` | Depth-aware context generator — accepts `{ topic, gate, lang }`, returns `{ hook, facts[], searches[] }` via Groq. Gate 0=mechanism, 1=failure modes, 2=philosophy. |
 
 ## Voice input UI (Wispr-style — redesigned 2026-06-05)
 
@@ -119,9 +100,9 @@ Tier 0 → Tier 1 → Tier 2 → Tier 3 → Tier 4, each a fallback of the previ
 
 ### Tier 0: OpenAI tts-1-hd (optional — highest multilingual quality)
 
-`src/lib/useOpenAITTS.ts` → `netlify/functions/openai-tts.ts`
+`src/lib/useOpenAITTS.ts` → `functions/api/openai-tts.ts`
 
-- Requires `OPENAI_API_KEY` in Netlify env — set via dashboard
+- Requires `OPENAI_API_KEY` in CF Pages env — set via wrangler or dashboard
 - Model: `tts-1-hd`, auto-detects language from text, no per-language voice IDs needed
 - Guide voice: `nova` (warm, clear female — natural in English AND Hindi/Tamil/etc.)
 - Learner voice: `onyx` (deep, resonant male — very distinct texture from nova; contrast is the point)
@@ -130,7 +111,7 @@ Tier 0 → Tier 1 → Tier 2 → Tier 3 → Tier 4, each a fallback of the previ
 - Cache prefix: `oa2:` — stored in Dexie `ttsCache` as ArrayBuffer
 - If OPENAI_API_KEY not set: function returns 503 with `code: 'NO_KEY'`, hook marks self unconfigured, narration falls through to Tier 1 (ElevenLabs)
 - Badge: `✦ Nova & Onyx · HD` when active
-- **Testing**: Set `OPENAI_API_KEY` in Netlify env, redeploy (or just push new env — functions pick it up on next cold start). Listen to first run demo; audio caches in Dexie after first play.
+- **Testing**: Set `OPENAI_API_KEY` via `npx wrangler pages secret put OPENAI_API_KEY --project-name cognitive-nav`, then redeploy. Listen to first run demo; audio caches in Dexie after first play.
 
 ### Tier 1: ElevenLabs (real trained human voices)
 
@@ -184,9 +165,9 @@ Voice design rule: DO NOT use Rachel (21m00Tcm4TlvDq8ikWAM) or Charlie (IKne3meq
 
 ### Tier 2: Cartesia Sonic-2 (DemoFlow narration — 2026-06-30)
 
-`src/lib/useCartesiaTTS.ts` → `netlify/functions/cartesia-tts.ts`
+`src/lib/useCartesiaTTS.ts` → `functions/api/cartesia-tts.ts`
 
-- Requires `CARTESIA_API_KEY` in Netlify env (same key used by EvaluationCard 🔊 button)
+- Requires `CARTESIA_API_KEY` in CF Pages env (same key used by EvaluationCard 🔊 button)
 - Guide voice: Helpful Woman `b7d50908-b17c-442d-ad8d-810c63997ed9`; Learner voice: Newsman `694f9389-aac1-45b6-b726-9d9369183238`
 - Consistent voice pair across ALL demo phases (including newly-added `gate1-study`) — solves speaker continuity
 - No Dexie cache in demo narration (same as EvaluationCard); each line fetched live from Cartesia Sonic-2
@@ -222,7 +203,7 @@ Voice design rule: DO NOT use Rachel (21m00Tcm4TlvDq8ikWAM) or Charlie (IKne3meq
 `src/lib/useVoiceInput.ts` — three modes:
 - `mode: 'auto'` (default) — tries Web Speech API first (interim results live as user speaks); on permanent error (network/permission/no-support) automatically falls back to Whisper batch mode
 - `mode: 'webspeech'` — Web Speech only, shows text in real-time as user speaks (`interimResults: true`, `continuous: false`)
-- `mode: 'whisper'` — batch: MediaRecorder → base64 → `/.netlify/functions/whisper` → text
+- `mode: 'whisper'` — batch: MediaRecorder → base64 → `/.functions/api/whisper` → text
 
 `onInterim(text)` callback: called with live partial text during Web Speech — component shows it immediately in the input field. Empty string = clear interim (called on `onend` and after final result).
 
@@ -367,9 +348,9 @@ Score = quality of inquiry practice, not intelligence.
 
 - **Frontend**: React + Vite + TypeScript + Tailwind (PWA)
 - **State**: Zustand + TanStack Query + Dexie.js (IndexedDB)
-- **AI eval**: Groq → Netlify function proxy
-- **TTS**: ElevenLabs → Netlify function proxy (cached in Dexie)
-- **STT**: Groq Whisper → Netlify function proxy
+- **AI eval**: Groq → Cloudflare Pages Function proxy (`/api/evaluate`)
+- **TTS**: ElevenLabs → Cloudflare Pages Function proxy (`/api/tts`, cached in Dexie)
+- **STT**: Groq Whisper → Cloudflare Pages Function proxy (`/api/whisper`)
 - **Auth**: Firebase (optional, graceful fallback to local identity)
 - **Storage**: Dexie.js (offline-first)
 
@@ -377,9 +358,9 @@ Score = quality of inquiry practice, not intelligence.
 
 | File | Purpose |
 |------|---------|
-| `netlify/functions/evaluate.ts` | Groq LLM evaluation |
-| `netlify/functions/tts.ts` | ElevenLabs TTS proxy |
-| `netlify/functions/whisper.ts` | Groq Whisper STT proxy |
+| `functions/api/evaluate.ts` | Groq LLM evaluation |
+| `functions/api/tts.ts` | ElevenLabs TTS proxy |
+| `functions/api/whisper.ts` | Groq Whisper STT proxy |
 | `src/lib/db.ts` | Dexie schema v2 (5 tables including ttsCache) |
 | `src/lib/useElevenLabsTTS.ts` | EL TTS hook with Dexie cache, ref-based availability |
 | `src/lib/useKokoroTTS.ts` | Kokoro WASM TTS, module singleton |
@@ -469,8 +450,7 @@ Save & Preview buttons moved to the **top** of VoiceSettings (directly below the
 - **ElevenLabs availability**: use `useRef` not `useState` for the available flag — putting it in useEffect deps causes narration to restart mid-line.
 - **Kokoro English-only**: check `langCode === 'en'` before using Kokoro. ElevenLabs handles all languages.
 - **VITE_ vars baked at build time**: always `npm run build` after changing Firebase vars.
-- **Netlify credits**: `--no-build` deploys use NO build minutes. Main cost = function invocations. TTS audio is cached in Dexie — each line generated once only.
-- **ElevenLabs key is required**: without `ELEVENLABS_API_KEY` in Netlify env, demo falls back to Kokoro (robotic WASM) or Web Speech. Set it in Netlify dashboard — free tier is enough because audio caches in Dexie.
+- **ElevenLabs key is required**: without `ELEVENLABS_API_KEY` in CF Pages env, demo falls back to Kokoro (robotic WASM) or Web Speech. Set it via wrangler or CF dashboard — free tier is enough because audio caches in Dexie.
 - **Web Speech voice quality varies wildly by browser**: Edge on Windows has Microsoft Natural Online voices (near-human). Chrome has Google voices (decent). Firefox often has no quality neural voices. ELEVENLABS_API_KEY removes this variance entirely.
 - **ElevenLabs emotion tuning**: `style` drives expressiveness (0=monotone, 1=very expressive). For educational mentoring, `style: 0.68–0.72` for teaching, `style: 0.90–0.92` for celebration. `similarity_boost: 0.92` for authentic voice reproduction.
 - **Narration restarts from Dexie prefs loading**: Do NOT put `prefs.*` or `kokoro.ready` in the narration effect deps. Dexie loads saved prefs ~50ms after mount — if any of these are deps, the narration effect re-fires mid-phase whenever prefs change, causing the demo to loop on the current phase forever. Use `prefsRef.current` and `kokoroReadyRef.current` inside the effect instead.

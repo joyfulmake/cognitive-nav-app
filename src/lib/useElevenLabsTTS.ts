@@ -282,7 +282,7 @@ export function useElevenLabsTTS() {
         const tOut = setTimeout(() => ctrl.abort(), 15000)
         let res: Response
         try {
-          res = await fetch('/.netlify/functions/tts', {
+          res = await fetch('/api/tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, voice_id: voiceId, model_id: modelId, style, stability, output_format }),
@@ -406,7 +406,7 @@ export function useElevenLabsTTS() {
       const tOut = setTimeout(() => ctrl.abort(), 15000)
       let res: Response
       try {
-        res = await fetch('/.netlify/functions/tts', {
+        res = await fetch('/api/tts', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, voice_id: voiceId, model_id: modelId, style, stability, output_format }),
           signal: ctrl.signal,

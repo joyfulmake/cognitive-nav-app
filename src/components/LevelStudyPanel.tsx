@@ -27,7 +27,7 @@ function ContextPanel({ topic, gate }: { topic: string; gate: number }) {
     setLoading(true)
     setError(false)
     try {
-      const res = await fetch('/.netlify/functions/context', {
+      const res = await fetch('/api/context', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ topic, gate }),

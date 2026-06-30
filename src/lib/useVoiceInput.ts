@@ -9,7 +9,7 @@ async function transcribeWithWhisper(blob: Blob): Promise<string> {
     reader.onerror = reject
     reader.readAsDataURL(blob)
   })
-  const res = await fetch('/.netlify/functions/whisper', {
+  const res = await fetch('/api/whisper', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({

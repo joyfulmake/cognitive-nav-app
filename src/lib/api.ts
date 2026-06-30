@@ -1,7 +1,7 @@
 import type { EvaluateRequest, EvaluateResponse } from '../core/types'
 
 export async function evaluateQuestion(req: EvaluateRequest): Promise<EvaluateResponse> {
-  const res = await fetch('/.netlify/functions/evaluate', {
+  const res = await fetch('/api/evaluate', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(req),

@@ -111,7 +111,7 @@ export function useOpenAITTS() {
         const tOut = setTimeout(() => ctrl.abort(), 12000)
         let res: Response
         try {
-          res = await fetch('/.netlify/functions/openai-tts', {
+          res = await fetch('/api/openai-tts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text, voice: voiceId, speed }),
@@ -201,7 +201,7 @@ export function useOpenAITTS() {
       const tOut = setTimeout(() => ctrl.abort(), 12000)
       let res: Response
       try {
-        res = await fetch('/.netlify/functions/openai-tts', {
+        res = await fetch('/api/openai-tts', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ text, voice: voiceId, speed }),
           signal: ctrl.signal,

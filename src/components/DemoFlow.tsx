@@ -1618,7 +1618,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
     setGuideAnswer(null)
     try {
       const lang = effectiveLang.split('-')[0]
-      const res = await fetch('/.netlify/functions/guide-qa', {
+      const res = await fetch('/api/guide-qa', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ question: q, lang }),
