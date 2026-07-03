@@ -7,8 +7,6 @@ import { useSessionStore } from '../stores/sessionStore'
 import { useUserStore } from '../stores/userStore'
 import { getSuggestions } from '../core/topicSuggestions'
 import { useVoiceInput } from '../lib/useVoiceInput'
-import { DemoFlow } from '../components/DemoFlow'
-import { AppTourCard } from '../components/AppTourCard'
 import { WisdomResources } from '../components/WisdomResources'
 import { AuthPanel } from '../components/AuthPanel'
 
@@ -264,17 +262,7 @@ export function Home() {
           </motion.div>
         </header>
 
-        {/* ── APP TOUR — quick visual "what is this?" before the full demo ── */}
-        <motion.section
-          className="mb-10"
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.18 }}
-        >
-          <AppTourCard />
-        </motion.section>
-
-        {/* ── DEMO — full interactive learning loop ── */}
+        {/* ── DEMO — watch it, then try it yourself ── */}
         <motion.section
           ref={demoSectionRef}
           id="demo"
@@ -295,7 +283,7 @@ export function Home() {
               />
               <span className="font-mono text-xs font-bold tracking-[0.2em] uppercase"
                 style={{ color: targetMeta.color }}>
-                Live · Interactive
+                Narrated walkthrough
               </span>
               <motion.div
                 animate={{ opacity: [0.5, 1, 0.5] }}
@@ -310,12 +298,30 @@ export function Home() {
             </h2>
             <p className="font-sans text-sm leading-relaxed" style={{ color: '#8a7d6e', maxWidth: 380, margin: '0 auto' }}>
               Topic → depth choice → questions → gate mastery → completion.
-              {' '}Click to watch it run live in your browser.
+              {' '}One narrated walkthrough, start to finish — real voices, real pacing.
             </p>
           </div>
 
-          {/* Demo card */}
-          <DemoFlow appMode={appMode} />
+          {/* Single demo video — real narration throughout, native player controls */}
+          <div className="rounded-3xl overflow-hidden mx-auto" style={{
+            maxWidth: 640,
+            border: `2px solid ${targetMeta.color}`,
+            boxShadow: `0 8px 40px rgba(28,26,20,0.16), 0 2px 8px rgba(28,26,20,0.1)`,
+            background: '#000',
+          }}>
+            <video
+              poster="/demo-poster.jpg"
+              controls
+              playsInline
+              preload="metadata"
+              style={{ display: 'block', width: '100%' }}
+            >
+              {/* webm/VP9+Opus first — royalty-free, always decodable on Debian/Kali-packaged
+                  Chromium and Firefox, which ship without licensed H.264/AAC support */}
+              <source src="/demo.webm" type="video/webm" />
+              <source src="/demo.mp4" type="video/mp4" />
+            </video>
+          </div>
 
           {/* Feature badges below the demo */}
           <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">

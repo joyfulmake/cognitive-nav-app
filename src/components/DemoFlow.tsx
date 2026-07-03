@@ -1846,7 +1846,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
                 initial={{ opacity: 0, x: 4 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.18 }}
-                className="font-mono text-xs font-bold"
+                className="font-mono text-sm font-bold"
                 style={{ color: speakerInfo.role === 'g' ? targetMeta.color : '#5a5670' }}
               >
                 {speakerInfo.role === 'g' ? 'Guide' : 'Learner'}
@@ -1872,14 +1872,14 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.22 }}
-              className="mt-1 font-sans text-xs leading-[1.55] pl-3"
+              className="mt-1 font-sans text-base leading-[1.5] pl-3"
               style={{
                 color: speakerInfo.role === 'g' ? targetMeta.color + 'cc' : '#7a7570',
                 borderLeft: `2px solid ${speakerInfo.role === 'g' ? targetMeta.color + '55' : '#e0ddd5'}`,
                 fontStyle: 'italic',
               }}
             >
-              {speakerInfo.text.length > 72 ? speakerInfo.text.slice(0, 69) + '…' : speakerInfo.text}
+              {speakerInfo.text}
             </motion.div>
           )}
 
