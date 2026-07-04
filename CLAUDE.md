@@ -9,6 +9,7 @@ Depth-graded epistemic engine. Two apps in one: General Epistemic (any topic) + 
 | `CLAUDE.md` | Build, deploy, env vars, technical decisions | After any change to deploy, env, or implementation detail |
 | `ARCHITECTURE.md` | Full technical and product architecture | After any structural change to data flow, file structure, or AI integration |
 | `PRODUCT_ROADMAP.md` | RTM of current features + upcoming release ideas | When shipping a feature (move to Live) or adding a new idea |
+| `GROWTH_PLAYBOOK.md` | Zero-cost go-to-market tactics, online + offline | When a tactic is tried — record what worked/didn't |
 
 ## Live URL
 
