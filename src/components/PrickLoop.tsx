@@ -942,6 +942,7 @@ export function PrickLoop({ session, onComplete }: Props) {
         examBoard: session.examBoard,
         domain: session.domain,
         tier: session.tier,
+        board: session.board,
         targetDepth: session.targetDepth,
         activeGate,
         reformulationIndex: session.reformulations.length,
@@ -1034,7 +1035,7 @@ export function PrickLoop({ session, onComplete }: Props) {
   const handleGoDeeper = useCallback(() => {
     if (session.targetDepth < 4) {
       const next = (session.targetDepth + 1) as DepthLayer
-      const s = startSession(session.topic, session.appMode, next, session.examBoard, session.userId ?? undefined, undefined, undefined, session.domain, session.tier)
+      const s = startSession(session.topic, session.appMode, next, session.examBoard, session.userId ?? undefined, undefined, undefined, session.domain, session.tier, session.board)
       navigate(`/session/${s.id}`)
     }
   }, [navigate, session, startSession])

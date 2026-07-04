@@ -563,6 +563,37 @@ item placeholder list per domain (not tier-specific), and `caseInstructions`/`ca
 content for the 13 new domains is a first hand-authored pass, not expert-reviewed — universal
 topic bank generalization and domain-expert content review are the next roadmap items.
 
+## Generic "board flavor" — real exam boards beyond Medicine (2026-07-04)
+
+Extends the exam-board concept (previously Medicine-only, via `ExamBoard`/`legacyExamBoards`) to
+any domain that has a genuine, recognizable credentialing exam — same reason Medicine's dropdown
+works: NEET/USMLE/PLAB are real. 13 of 14 non-medicine domains got real boards (~42 total); only
+**Entrepreneurship has none** — no licensing exam is genuinely analogous to a bar exam or CFA,
+so it stays tier-only rather than getting an invented one.
+
+- **`TierInfo.boards?: { value: string; label: string }[]`** (`domainCrucibles.ts`) — generic,
+  any domain's tier. Medicine's own mechanism (`legacyExamBoards`, `ExamBoard` type, `examBoard`
+  field) is completely untouched — this is a separate, additive path for everyone else, since a
+  fixed union of ~30 board strings across 13 domains would be unwieldy, and the UI only ever
+  populates it from the registry itself, so an invalid value can never reach the wire.
+- **`Session.board?: string`, `EvaluateRequest.board?: string`, `UserProfile.preferredBoard?: string`**
+  (types.ts) — the generic counterpart to Medicine's `examBoard`.
+- **`resolveCaseStyleKey(domain, examBoard?, tier?, board?)`** — priority: `examBoard` (medicine
+  only) → `board` (everyone else) → `tier` → domain default.
+- **`functions/api/evaluate.ts`** — context-line priority: `examBoard` line (medicine) → `Board
+  calibration: <label>` line (generic) → `Domain/Tier` line (fallback).
+- **`src/pages/Home.tsx`** — a second, generic "Board flavor" dropdown appears below Medicine's
+  own (untouched) exam-board dropdown, for any other domain whose current tier has `boards`
+  populated. Leading option is always "General {tier label}" so it's never forced. Switching
+  domain or tier resets `board` to unselected.
+- Boards by domain/tier: Engineering (FE, PE, GATE, Chartered Engineer), Law (LSAT, CLAT, Bar
+  Exam/UBE, SQE, AIBE), Computer Science (GATE CS, CompTIA, AWS/GCP/Azure Professional, CISSP),
+  Physical/Life Sciences (GATE, GRE Subject Tests), Mathematics (Putnam, AMC/AIME, GATE),
+  Business/Econ/Finance (GMAT, CAT, CFA 1/2/3, CPA, FRM), Humanities (GRE Literature), Social
+  Sciences (GRE Psychology, EPPP), Arts & Design (Adobe Certified Professional, NCIDQ, NCARB/ARE),
+  Trades & Vocational (Journeyman, Master Electrician, NATE, ASE), Education (Praxis Core/Subject,
+  PGCE), Agriculture & Environmental Science (CCA, LEED AP).
+
 ## Vedic foundation
 
 Bhagavad Gita 4.34 (Pariprashna) — knowledge through deep investigative inquiry. The prick IS the guru function. Real strength is helping others surpass your current state.

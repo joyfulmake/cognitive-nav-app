@@ -89,6 +89,12 @@ export function Session() {
                   {session.tier}
                 </span>
               )}
+              {session.board && session.domain && (
+                <span className="font-sans text-sm font-semibold px-3 py-1 rounded-full"
+                  style={{ backgroundColor: DEPTH_LAYERS[2].bgColor, color: DEPTH_LAYERS[2].color }}>
+                  {(session.tier && DOMAIN_CRUCIBLES[session.domain].tiers[session.tier]?.boards?.find(b => b.value === session.board)?.label) ?? session.board}
+                </span>
+              )}
               <span className="font-sans text-sm font-bold px-3 py-1 rounded-full"
                 style={{
                   backgroundColor: targetMeta.bgColor,

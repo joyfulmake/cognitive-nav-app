@@ -69,6 +69,9 @@ export interface Session {
   examBoard?: ExamBoard
   domain?: Domain
   tier?: Tier
+  /** Generic "named board/exam within this tier" for domains other than medicine — see
+   *  DomainCrucibleConfig.tiers[tier].boards in domainCrucibles.ts. Medicine keeps examBoard. */
+  board?: string
   targetDepth: DepthLayer
   levelMastery: Partial<Record<DepthLayer, number>>
   reformulations: Reformulation[]
@@ -89,6 +92,7 @@ export interface EvaluateRequest {
   examBoard?: ExamBoard
   domain?: Domain
   tier?: Tier
+  board?: string
   targetDepth: DepthLayer
   activeGate: DepthLayer
   reformulationIndex: number
@@ -146,6 +150,7 @@ export interface UserProfile {
   preferredExamBoard?: ExamBoard
   preferredDomain?: Domain
   preferredTier?: Tier
+  preferredBoard?: string
   conceptCoverage: Record<string, DepthLayer>
   totalSessions: number
   createdAt: string

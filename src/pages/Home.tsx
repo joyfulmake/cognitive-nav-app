@@ -56,6 +56,7 @@ export function Home() {
   const [examBoard, setExamBoard] = useState<ExamBoard>(preferredExamBoard)
   const [domain, setDomain] = useState<Domain>('medicine')
   const [tier, setTier] = useState<Tier>('T2')
+  const [board, setBoard] = useState<string | undefined>(undefined)
   const [targetDepth, setTargetDepth] = useState<DepthLayer>(1)
   const [showRules, setShowRules] = useState(false)
   const [sessionMode, setSessionMode] = useState<SessionMode>('topic')
@@ -96,7 +97,7 @@ export function Home() {
     [appMode, examBoard, domain, tier]
   )
 
-  const fetchVignette = useCallback(async (t: string, board: ExamBoard, d: Domain, tr: Tier) => {
+  const fetchVignette = useCallback(async (t: string, eb: ExamBoard, d: Domain, tr: Tier, bd?: string) => {
     if (!t.trim() || vignetteTopicRef.current === t) return
     vignetteTopicRef.current = t
     setVignetteLoading(true)
@@ -105,7 +106,7 @@ export function Home() {
       const res = await fetch('/api/vignette', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: t.trim(), examBoard: board, domain: d, tier: tr }),
+        body: JSON.stringify({ topic: t.trim(), examBoard: eb, domain: d, tier: tr, board: bd }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -132,6 +133,7 @@ export function Home() {
       appMode === 'clinical' ? sessionMode : 'topic',
       appMode === 'clinical' ? domain : undefined,
       appMode === 'clinical' && !medicineTierHasBoard ? tier : undefined,
+      appMode === 'clinical' && domain !== 'medicine' ? board : undefined,
     )
     navigate(`/session/${session.id}`)
   }
@@ -163,9 +165,9 @@ export function Home() {
       vignetteTopicRef.current = ''
       return
     }
-    const t = setTimeout(() => fetchVignette(topic.trim(), examBoard, domain, tier), 900)
+    const t = setTimeout(() => fetchVignette(topic.trim(), examBoard, domain, tier, board), 900)
     return () => clearTimeout(t)
-  }, [topic, appMode, sessionMode, examBoard, domain, tier, fetchVignette])
+  }, [topic, appMode, sessionMode, examBoard, domain, tier, board, fetchVignette])
 
   return (
     <div className="min-h-screen">
@@ -474,6 +476,7 @@ export function Home() {
                     onClick={() => {
                       setDomain(d)
                       setTier('T2')
+                      setBoard(undefined)
                       const t2Boards = DOMAIN_CRUCIBLES[d].tiers.T2?.legacyExamBoards
                       if (t2Boards?.length) setExamBoard(t2Boards[0])
                     }}
@@ -499,8 +502,9 @@ export function Home() {
                 onChange={e => {
                   const nextTier = e.target.value as Tier
                   setTier(nextTier)
-                  const boards = DOMAIN_CRUCIBLES[domain].tiers[nextTier]?.legacyExamBoards
-                  if (boards?.length) setExamBoard(boards[0])
+                  setBoard(undefined)
+                  const legacyBoards = DOMAIN_CRUCIBLES[domain].tiers[nextTier]?.legacyExamBoards
+                  if (legacyBoards?.length) setExamBoard(legacyBoards[0])
                 }}
                 className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
                 style={{
@@ -532,6 +536,29 @@ export function Home() {
                     {EXAM_BOARDS
                       .filter(b => DOMAIN_CRUCIBLES.medicine.tiers[tier]?.legacyExamBoards?.includes(b.value))
                       .map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {domain !== 'medicine' && DOMAIN_CRUCIBLES[domain].tiers[tier]?.boards && (
+                <div className="mt-4">
+                  <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
+                    Board flavor
+                  </label>
+                  <select
+                    value={board ?? ''}
+                    onChange={e => setBoard(e.target.value || undefined)}
+                    className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
+                    style={{
+                      border: '1.5px solid rgba(26,24,37,0.12)',
+                      boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
+                      color: '#1c1a14',
+                    }}
+                  >
+                    <option value="">General {DOMAIN_CRUCIBLES[domain].tiers[tier]?.label}</option>
+                    {DOMAIN_CRUCIBLES[domain].tiers[tier]?.boards?.map(b => (
+                      <option key={b.value} value={b.value}>{b.label}</option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -997,7 +1024,7 @@ export function Home() {
                   {vignette && !vignetteLoading && (
                     <button
                       type="button"
-                      onClick={() => { vignetteTopicRef.current = ''; fetchVignette(topic.trim(), examBoard, domain, tier) }}
+                      onClick={() => { vignetteTopicRef.current = ''; fetchVignette(topic.trim(), examBoard, domain, tier, board) }}
                       className="mt-3 font-mono text-xs transition-colors hover:opacity-70"
                       style={{ color: targetMeta.color }}
                     >

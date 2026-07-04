@@ -27,14 +27,14 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
   }
 
   try {
-    const { topic, examBoard, domain, tier } = await ctx.request.json() as any
+    const { topic, examBoard, domain, tier, board } = await ctx.request.json() as any
     if (!topic) {
       return new Response(JSON.stringify({ error: 'Missing topic' }), { status: 400, headers: cors })
     }
 
     const resolvedDomain = resolveDomain('clinical', domain) ?? 'medicine'
     const config = DOMAIN_CRUCIBLES[resolvedDomain as keyof typeof DOMAIN_CRUCIBLES]
-    const styleKey = resolveCaseStyleKey(resolvedDomain, examBoard, tier)
+    const styleKey = resolveCaseStyleKey(resolvedDomain, examBoard, tier, board)
     const style = config.caseStyle[styleKey] ?? config.caseStyle[config.defaultCaseStyleKey]
     const client = new Groq({ apiKey: ctx.env.GROQ_API_KEY })
 

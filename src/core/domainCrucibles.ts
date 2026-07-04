@@ -13,6 +13,10 @@ import type { Domain, Tier, ExamBoard } from './types'
 export interface TierInfo {
   label: string
   legacyExamBoards?: ExamBoard[] // medicine only — which ExamBoard values live at this tier
+  /** Generic named board/exam within this tier, for any domain other than medicine (which uses
+   *  legacyExamBoards above). Only populated where a genuine, real credentialing exam exists —
+   *  not every domain or tier has one. Values are plain strings, matched against caseStyle keys. */
+  boards?: { value: string; label: string }[]
 }
 
 export interface DomainCrucibleConfig {
@@ -448,9 +452,9 @@ Return JSON:
     label: 'Engineering',
     tiers: {
       T1: { label: 'Foundational (Pre-University Physics)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Licensed / Professional Engineer' },
-      T4: { label: 'Doctoral / Research' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'fe-exam', label: 'FE — Fundamentals of Engineering' }] },
+      T3: { label: 'Licensed / Professional Engineer', boards: [{ value: 'pe-exam', label: 'PE — Professional Engineer' }, { value: 'gate-eng', label: 'GATE (Engineering)' }] },
+      T4: { label: 'Doctoral / Research', boards: [{ value: 'chartered-engineer', label: 'Chartered Engineer (UK, IET)' }] },
       T5: { label: 'Frontier (Postdoctoral / Field-Shaping Research)' },
     },
     calibrationBlock: ENGINEERING_CALIBRATION_BLOCK,
@@ -461,6 +465,10 @@ Return JSON:
       T3: 'professional/licensed engineering practice — code compliance, safety margins, real deployment tradeoffs',
       T4: 'doctoral/research-level engineering — novel design tradeoffs, unresolved or emerging failure modes',
       T5: 'postdoctoral/field-shaping engineering research — unstandardized, frontier design problems',
+      'fe-exam': 'FE exam prep — fundamentals-level engineering principles across disciplines',
+      'pe-exam': 'PE exam / licensed practice — code compliance and professional accountability framing',
+      'gate-eng': 'GATE-style — rigorous grad-entrance engineering fundamentals',
+      'chartered-engineer': 'Chartered Engineer (IET) — advanced professional standard, UK engineering practice',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise engineering failure/design case for the topic: "${topic}".
@@ -487,8 +495,8 @@ Return JSON:
     label: 'Law',
     tiers: {
       T1: { label: 'Foundational (Pre-Law / School Civics)' },
-      T2: { label: 'Undergraduate / Law School' },
-      T3: { label: 'Graduate / Practicing Attorney' },
+      T2: { label: 'Undergraduate / Law School', boards: [{ value: 'lsat', label: 'LSAT' }, { value: 'clat', label: 'CLAT (India)' }] },
+      T3: { label: 'Graduate / Practicing Attorney', boards: [{ value: 'bar-exam', label: 'Bar Exam / UBE' }, { value: 'sqe', label: 'SQE (UK)' }, { value: 'aibe', label: 'AIBE (India)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Scholar / Appellate Specialist)' },
     },
@@ -500,6 +508,11 @@ Return JSON:
       T3: 'practicing-attorney level — case strategy, precedent conflict, jurisdictional nuance',
       T4: 'doctoral/research-level legal scholarship — unresolved doctrinal tension',
       T5: 'appellate specialist / legal scholar — frontier, unsettled questions of law',
+      lsat: 'LSAT prep — logical reasoning and issue-spotting fundamentals',
+      clat: 'CLAT prep — Indian law-school entrance, statutory reasoning',
+      'bar-exam': 'Bar Exam / UBE — practicing-attorney standard, multi-jurisdiction issue spotting',
+      sqe: 'SQE (UK) — solicitor qualification standard, practice-area breadth',
+      aibe: 'AIBE (India) — advocate licensing standard, procedural and substantive breadth',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise legal fact pattern for the topic: "${topic}".
@@ -526,8 +539,8 @@ Return JSON:
     label: 'Computer Science',
     tiers: {
       T1: { label: 'Foundational (Pre-University / School Coding)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Professional / Industry' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gate-cs', label: 'GATE (Computer Science)' }, { value: 'comptia', label: 'CompTIA (A+/Network+)' }] },
+      T3: { label: 'Professional / Industry', boards: [{ value: 'cloud-professional', label: 'AWS/GCP/Azure Professional' }, { value: 'cissp', label: 'CISSP (Security)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -539,6 +552,10 @@ Return JSON:
       T3: 'professional/industry practice — production incidents, scale, real deployment tradeoffs',
       T4: 'doctoral/research-level computer science — novel or unresolved systems-design tension',
       T5: 'field-shaping systems research — frontier, unstandardized problems',
+      'gate-cs': 'GATE CS-style — rigorous grad-entrance algorithmic and systems fundamentals',
+      comptia: 'CompTIA-style — foundational IT infrastructure and networking practice',
+      'cloud-professional': 'AWS/GCP/Azure Professional-level — production cloud architecture tradeoffs',
+      cissp: 'CISSP-style — advanced security-architecture decision-depth',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise software bug report or system incident case for the topic: "${topic}".
@@ -565,8 +582,8 @@ Return JSON:
     label: 'Physical Sciences',
     tiers: {
       T1: { label: 'Foundational (School Physics / Chemistry)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Specialist' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gate-physics-chem', label: 'GATE (Physics/Chemistry)' }] },
+      T3: { label: 'Graduate / Specialist', boards: [{ value: 'gre-physics', label: 'GRE Physics Subject Test' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -578,6 +595,8 @@ Return JSON:
       T3: 'graduate-level research — multi-mechanism experimental interpretation',
       T4: 'doctoral/research-level physical science — unresolved theoretical tension',
       T5: 'field-shaping physical science research — frontier, unsettled by experiment',
+      'gate-physics-chem': 'GATE-style — rigorous grad-entrance physics/chemistry fundamentals',
+      'gre-physics': 'GRE Physics Subject Test-style — graduate-level breadth across physics',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise experimental observation case for the topic: "${topic}".
@@ -604,8 +623,8 @@ Return JSON:
     label: 'Life Sciences',
     tiers: {
       T1: { label: 'Foundational (School Biology)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Specialist' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gate-life-sciences', label: 'GATE (Life Sciences)' }] },
+      T3: { label: 'Graduate / Specialist', boards: [{ value: 'gre-biology', label: 'GRE Biology Subject Test' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -617,6 +636,8 @@ Return JSON:
       T3: 'graduate-level research — multi-mechanism experimental interpretation',
       T4: 'doctoral/research-level life science — unresolved mechanistic tension',
       T5: 'field-shaping life-science research — frontier, unsettled by experiment',
+      'gate-life-sciences': 'GATE-style — rigorous grad-entrance life-science fundamentals',
+      'gre-biology': 'GRE Biology Subject Test-style — graduate-level breadth across biology',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise experimental observation case for the topic: "${topic}".
@@ -643,8 +664,8 @@ Return JSON:
     label: 'Mathematics',
     tiers: {
       T1: { label: 'Foundational (School Mathematics)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Specialist' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'putnam', label: 'Putnam Competition' }, { value: 'amc-aime', label: 'AMC/AIME' }] },
+      T3: { label: 'Graduate / Specialist', boards: [{ value: 'gate-math', label: 'GATE (Mathematics)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -656,6 +677,9 @@ Return JSON:
       T3: 'graduate-level research — multi-case proof structure',
       T4: 'doctoral/research-level mathematics — unresolved proof-strategy tension',
       T5: 'field-shaping mathematical research — frontier, unsettled in the literature',
+      putnam: 'Putnam-style — undergraduate competition-level proof ingenuity',
+      'amc-aime': 'AMC/AIME-style — competition mathematics, elegant problem-solving',
+      'gate-math': 'GATE-style — rigorous grad-entrance mathematical fundamentals',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise problem-scenario case for the topic: "${topic}".
@@ -682,9 +706,9 @@ Return JSON:
     label: 'Business, Economics & Finance',
     tiers: {
       T1: { label: 'Foundational (School Economics)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Practicing' },
-      T4: { label: 'Doctoral / Research' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gmat', label: 'GMAT' }, { value: 'cat', label: 'CAT (India)' }] },
+      T3: { label: 'Graduate / Practicing', boards: [{ value: 'cfa-1-2', label: 'CFA Level 1/2' }, { value: 'cpa', label: 'CPA' }] },
+      T4: { label: 'Doctoral / Research', boards: [{ value: 'cfa-3', label: 'CFA Level 3' }, { value: 'frm', label: 'FRM' }] },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
     calibrationBlock: BUSINESS_CALIBRATION_BLOCK,
@@ -695,6 +719,12 @@ Return JSON:
       T3: 'graduate/practicing level — valuation, strategy, multi-mechanism interpretation',
       T4: 'doctoral/research-level economics — unresolved market-design tension',
       T5: 'field-shaping economic research — frontier, unsettled empirically',
+      gmat: 'GMAT prep — analytical and quantitative business-school entrance reasoning',
+      cat: 'CAT prep — Indian MBA entrance, quantitative and case reasoning',
+      'cfa-1-2': 'CFA Level 1/2-style — investment analysis and valuation rigor',
+      cpa: 'CPA-style — accounting and financial-reporting professional standard',
+      'cfa-3': 'CFA Level 3-style — portfolio management, advanced practitioner judgment',
+      frm: 'FRM-style — quantitative financial-risk-management rigor',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise business or market case scenario for the topic: "${topic}".
@@ -721,7 +751,7 @@ Return JSON:
     label: 'Humanities',
     tiers: {
       T1: { label: 'Foundational (School History / Literature)' },
-      T2: { label: 'Undergraduate' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gre-literature', label: 'GRE Literature Subject Test' }] },
       T3: { label: 'Graduate / Specialist' },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Scholarship)' },
@@ -734,6 +764,7 @@ Return JSON:
       T3: 'graduate-level scholarship — multi-source comparative interpretation',
       T4: 'doctoral/research-level humanities — unresolved interpretive tension',
       T5: 'field-shaping humanities scholarship — frontier, unsettled in the literature',
+      'gre-literature': 'GRE Literature Subject Test-style — breadth across literary periods and criticism',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise historical or textual scenario for the topic: "${topic}".
@@ -760,8 +791,8 @@ Return JSON:
     label: 'Social Sciences',
     tiers: {
       T1: { label: 'Foundational (School Civics / Psychology)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Specialist' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'gre-psychology', label: 'GRE Psychology Subject Test' }] },
+      T3: { label: 'Graduate / Specialist', boards: [{ value: 'eppp', label: 'EPPP (Psychology Licensure)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -773,6 +804,8 @@ Return JSON:
       T3: 'graduate-level research — multi-mechanism research-design interpretation',
       T4: 'doctoral/research-level social science — unresolved theoretical tension',
       T5: 'field-shaping social science research — frontier, unsettled empirically',
+      'gre-psychology': 'GRE Psychology Subject Test-style — breadth across psychological subfields',
+      eppp: 'EPPP-style — psychology licensure standard, applied clinical/behavioral judgment',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise behavioral or social-study scenario for the topic: "${topic}".
@@ -799,8 +832,8 @@ Return JSON:
     label: 'Arts & Design',
     tiers: {
       T1: { label: 'Foundational (School Art / Design)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Practicing' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'adobe-certified', label: 'Adobe Certified Professional' }] },
+      T3: { label: 'Graduate / Practicing', boards: [{ value: 'ncidq', label: 'NCIDQ (Interior Design)' }, { value: 'ncarb-are', label: 'NCARB/ARE (Architecture)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Practice)' },
     },
@@ -812,6 +845,9 @@ Return JSON:
       T3: 'graduate/practicing level — multi-technique comparative critique',
       T4: 'doctoral/research-level arts and design — unresolved formal tension',
       T5: 'field-shaping design practice — frontier, unsettled in theory or practice',
+      'adobe-certified': 'Adobe Certified Professional-style — production tool fluency and technique',
+      ncidq: 'NCIDQ-style — interior design licensure standard, code and spatial reasoning',
+      'ncarb-are': 'NCARB/ARE-style — architectural licensure standard, structural and code reasoning',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise critique scenario for a work or design for the topic: "${topic}".
@@ -838,8 +874,8 @@ Return JSON:
     label: 'Trades & Vocational',
     tiers: {
       T1: { label: 'Foundational (Pre-Apprentice / School Shop)' },
-      T2: { label: 'Apprentice / Undergraduate' },
-      T3: { label: 'Licensed / Professional' },
+      T2: { label: 'Apprentice / Undergraduate', boards: [{ value: 'journeyman-exam', label: 'Journeyman Exam' }] },
+      T3: { label: 'Licensed / Professional', boards: [{ value: 'master-electrician', label: 'Master Electrician' }, { value: 'nate', label: 'NATE (HVAC)' }, { value: 'ase', label: 'ASE (Automotive)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Master Tradesperson / Standards-Setting)' },
     },
@@ -851,6 +887,10 @@ Return JSON:
       T3: 'licensed/professional practice — code compliance, real diagnostic tradeoffs',
       T4: 'doctoral/research-level trades — unresolved standards-design tension',
       T5: 'master tradesperson / standards-setting — frontier, not yet codified',
+      'journeyman-exam': 'Journeyman exam-style — apprentice-level code and diagnostic fundamentals',
+      'master-electrician': 'Master Electrician-style — advanced code compliance and diagnostic authority',
+      nate: 'NATE-style — HVAC technician certification, diagnostic and system rigor',
+      ase: 'ASE-style — automotive technician certification, diagnostic rigor',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise field diagnostic case for the topic: "${topic}".
@@ -877,8 +917,8 @@ Return JSON:
     label: 'Education',
     tiers: {
       T1: { label: 'Foundational (Pre-Service / School Observation)' },
-      T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Practicing Educator' },
+      T2: { label: 'Undergraduate', boards: [{ value: 'praxis-core', label: 'Praxis Core' }] },
+      T3: { label: 'Graduate / Practicing Educator', boards: [{ value: 'praxis-subject', label: 'Praxis Subject' }, { value: 'pgce', label: 'PGCE (UK)' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -890,6 +930,9 @@ Return JSON:
       T3: 'graduate/practicing level — multi-mechanism classroom research interpretation',
       T4: 'doctoral/research-level education — unresolved pedagogical tension',
       T5: 'field-shaping education research — frontier, unsettled empirically',
+      'praxis-core': 'Praxis Core-style — foundational teacher-licensure reasoning',
+      'praxis-subject': 'Praxis Subject-style — subject-matter teacher licensure depth',
+      pgce: 'PGCE-style — UK teacher qualification, applied classroom practice',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise classroom or learner-outcome scenario for the topic: "${topic}".
@@ -917,7 +960,7 @@ Return JSON:
     tiers: {
       T1: { label: 'Foundational (School Environmental Science)' },
       T2: { label: 'Undergraduate' },
-      T3: { label: 'Graduate / Specialist' },
+      T3: { label: 'Graduate / Specialist', boards: [{ value: 'cca', label: 'Certified Crop Adviser (CCA)' }, { value: 'leed-ap', label: 'LEED AP' }] },
       T4: { label: 'Doctoral / Research' },
       T5: { label: 'Frontier (Field-Shaping Research)' },
     },
@@ -929,6 +972,8 @@ Return JSON:
       T3: 'graduate-level research — multi-mechanism field-study interpretation',
       T4: 'doctoral/research-level environmental science — unresolved ecological tension',
       T5: 'field-shaping environmental research — frontier, unsettled empirically',
+      cca: 'Certified Crop Adviser-style — applied agronomic and nutrient-management rigor',
+      'leed-ap': 'LEED AP-style — sustainable design and environmental-standard rigor',
     },
     defaultCaseStyleKey: 'T2',
     caseInstructions: (topic: string) => `Write a concise field observation case for the topic: "${topic}".
@@ -1009,10 +1054,12 @@ export function resolveTier(domain: Domain, examBoard?: ExamBoard, tier?: Tier):
   return undefined
 }
 
-/** Resolve the caseStyle key: ExamBoard takes priority for medicine (legacy behavior), else Tier,
- *  else the domain default. Medicine's T1/T5 have no examBoard, so they fall through to tier. */
-export function resolveCaseStyleKey(domain: Domain, examBoard?: ExamBoard, tier?: Tier): string {
+/** Resolve the caseStyle key: ExamBoard takes priority for medicine (legacy behavior), then the
+ *  generic `board` (every other domain), then Tier, else the domain default. Medicine's T1/T5
+ *  and any domain/tier with no board configured fall through to tier. */
+export function resolveCaseStyleKey(domain: Domain, examBoard?: ExamBoard, tier?: Tier, board?: string): string {
   const config = DOMAIN_CRUCIBLES[domain]
   if (domain === 'medicine' && examBoard) return examBoard
+  if (board) return board
   return (tier ?? config.defaultCaseStyleKey)
 }

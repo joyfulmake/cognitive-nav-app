@@ -121,7 +121,7 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
     const body = await ctx.request.text()
     if (!body) return new Response(JSON.stringify({ error: 'Missing body' }), { status: 400, headers: cors })
 
-    const { question, topic, appMode, examBoard, domain, tier, targetDepth, activeGate, reformulationIndex, previousReformulations, vignette } = JSON.parse(body)
+    const { question, topic, appMode, examBoard, domain, tier, board, targetDepth, activeGate, reformulationIndex, previousReformulations, vignette } = JSON.parse(body)
 
     if (!question || !topic || !appMode) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: cors })
@@ -142,6 +142,10 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
     ]
     if (examBoard) {
       contextLines.push(`Exam board calibration: ${examBoard}`)
+    } else if (board && resolvedDomain) {
+      const tierInfo = resolvedTier ? DOMAIN_CRUCIBLES[resolvedDomain].tiers[resolvedTier] : undefined
+      const boardLabel = tierInfo?.boards?.find(b => b.value === board)?.label ?? board
+      contextLines.push(`Domain: ${DOMAIN_CRUCIBLES[resolvedDomain].label}, Board calibration: ${boardLabel}`)
     } else if (resolvedDomain && resolvedTier) {
       const tierLabel = DOMAIN_CRUCIBLES[resolvedDomain].tiers[resolvedTier]?.label ?? resolvedTier
       contextLines.push(`Domain: ${DOMAIN_CRUCIBLES[resolvedDomain].label}, Tier: ${resolvedTier} (${tierLabel})`)

@@ -8,7 +8,7 @@ interface SessionState {
   sessions: Session[]
   activeSession: Session | null
   loadSessions: () => Promise<void>
-  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string, vignette?: string, sessionMode?: SessionMode, domain?: Domain, tier?: Tier) => Session
+  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string, vignette?: string, sessionMode?: SessionMode, domain?: Domain, tier?: Tier, board?: string) => Session
   addReformulation: (sessionId: string, reformulation: Reformulation) => void
   completeSession: (sessionId: string) => void
   clearActive: () => void
@@ -29,7 +29,7 @@ export const useSessionStore = create<SessionState>()(
         set({ sessions: all })
       },
 
-      startSession: (topic, appMode, targetDepth, examBoard, userId, vignette, sessionMode, domain, tier) => {
+      startSession: (topic, appMode, targetDepth, examBoard, userId, vignette, sessionMode, domain, tier, board) => {
         const session: Session = {
           id: makeId(),
           userId: userId ?? null,
@@ -38,6 +38,7 @@ export const useSessionStore = create<SessionState>()(
           examBoard,
           domain,
           tier,
+          board,
           targetDepth,
           levelMastery: {},
           reformulations: [],

@@ -111,6 +111,11 @@ function SessionCard({ session, index }: { session: Session; index: number }) {
               {!session.examBoard && session.tier && (
                 <span className="font-mono text-xs text-muted">{session.tier}</span>
               )}
+              {session.board && session.domain && (
+                <span className="font-mono text-xs text-muted">
+                  {(session.tier && DOMAIN_CRUCIBLES[session.domain].tiers[session.tier]?.boards?.find(b => b.value === session.board)?.label) ?? session.board}
+                </span>
+              )}
               {complete && (
                 <span className="font-mono text-xs font-bold" style={{ color: maxMeta.color }}>✓ complete</span>
               )}
