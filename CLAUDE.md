@@ -567,7 +567,8 @@ topic bank generalization and domain-expert content review are the next roadmap 
 
 Extends the exam-board concept (previously Medicine-only, via `ExamBoard`/`legacyExamBoards`) to
 any domain that has a genuine, recognizable credentialing exam — same reason Medicine's dropdown
-works: NEET/USMLE/PLAB are real. 13 of 14 non-medicine domains got real boards (~42 total); only
+works: NEET/USMLE/PLAB are real. 13 of 14 non-medicine domains got real boards (~58 total, after
+a follow-up pass added actuarial credentials and deeper cybersecurity coverage — see below); only
 **Entrepreneurship has none** — no licensing exam is genuinely analogous to a bar exam or CFA,
 so it stays tier-only rather than getting an invented one.
 
@@ -587,12 +588,15 @@ so it stays tier-only rather than getting an invented one.
   populated. Leading option is always "General {tier label}" so it's never forced. Switching
   domain or tier resets `board` to unselected.
 - Boards by domain/tier: Engineering (FE, PE, GATE, Chartered Engineer), Law (LSAT, CLAT, Bar
-  Exam/UBE, SQE, AIBE), Computer Science (GATE CS, CompTIA, AWS/GCP/Azure Professional, CISSP),
-  Physical/Life Sciences (GATE, GRE Subject Tests), Mathematics (Putnam, AMC/AIME, GATE),
-  Business/Econ/Finance (GMAT, CAT, CFA 1/2/3, CPA, FRM), Humanities (GRE Literature), Social
-  Sciences (GRE Psychology, EPPP), Arts & Design (Adobe Certified Professional, NCIDQ, NCARB/ARE),
-  Trades & Vocational (Journeyman, Master Electrician, NATE, ASE), Education (Praxis Core/Subject,
-  PGCE), Agriculture & Environmental Science (CCA, LEED AP).
+  Exam/UBE, SQE, AIBE), **Computer Science** (GATE CS, CompTIA, Security+, AWS/GCP/Azure
+  Professional, CISSP, CEH, OSCP, CISM, GIAC GSE — cybersecurity given real depth across T2–T4
+  rather than a single CISSP entry), Physical Sciences (GATE, GRE Physics, Chartered
+  Physicist/Chemist), Life Sciences (GATE, GRE Biology), Mathematics (Putnam, AMC/AIME, GATE),
+  **Business/Econ/Finance** (GMAT, CAT, CFA 1/2/3, CPA, ASA/FSA — actuarial, CFP, PMP, FRM, CAIA),
+  Humanities (GRE Literature), Social Sciences (GRE Psychology, EPPP, NCE), Arts & Design (Adobe
+  Certified Professional, NCIDQ, NCARB/ARE), Trades & Vocational (Journeyman, Master Electrician,
+  Master Plumber, NATE, ASE), Education (Praxis Core/Subject, PGCE, NBPTS), Agriculture &
+  Environmental Science (CCA, LEED AP). ~56 boards total across 13 domains.
 
 ## Vedic foundation
 
