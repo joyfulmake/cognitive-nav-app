@@ -4,6 +4,39 @@ _A practical, no-budget go-to-market guide. Built for a solo builder — every t
 
 ---
 
+## 0. One-page brief — pull from here before drafting any post
+
+Read this before adapting any draft in §8. Keeping every platform's copy sourced from the same facts is what makes the four posts read as one coherent launch instead of four different pitches.
+
+**Elevator pitch (one sentence):** An AI that never answers your question — it classifies how deep it is across 4 cognitive layers and tells you exactly what's missing to go deeper.
+
+**Elevator pitch (one paragraph):** Cognitive Nav is a depth-graded epistemic trainer. You ask a question about any topic; the AI never answers it — it classifies which of four cognitive depths the question reached (name it → explain the mechanism → name where it breaks → question why the system was designed that way) and returns a precise redirect naming the exact structural gap. Five qualifying questions at a depth locks that thinking pattern in, based on Hebb's 1949 work on repeated neural co-activation. Free, no login, works offline.
+
+**Key facts (use these numbers, don't round up):**
+- 4 cognitive depth layers (Factual → Relational → Systemic → Wisdom), 3 gates between them
+- 5 qualifying questions per gate to lock it in (Hebbian learning, Hebb 1949; white-matter density findings, Bengtsson)
+- 15 domains live: General Epistemic (any topic) plus 14 domain-specific Crucibles — Medicine, Engineering, Law, Computer Science, Physical Sciences, Life Sciences, Mathematics, Business/Econ/Finance, Humanities, Social Sciences, Arts & Design, Trades & Vocational, Education, Agriculture & Environmental Science, Entrepreneurship
+- Each domain spans a full T1–T5 tier ladder — school level through doctoral/frontier
+- ~56 real, recognized credentialing exams woven in where they exist (NEET/USMLE/PLAB, CFA/CPA/actuarial ASA-FSA, Bar Exam/SQE/AIBE, PE/FE/GATE, CISSP/CEH/OSCP/CISM, and more) — never invented ones (Entrepreneurship intentionally has none, on principle)
+- Free, no login required, works fully offline after first load (IndexedDB/Dexie), 18-language narration
+- Built on Groq (`llama-3.3-70b-versatile`) — evaluation only, never generates answers to the user's question
+
+**Links:**
+- Live: https://cognitive-nav.pages.dev
+- Repo: `git@github.com:joyfulmake/cognitive-nav-app.git`
+- Demo video: embedded on the homepage (also at `public/demo.mp4` / `demo.webm` in the repo)
+
+**Boilerplate "about" paragraph** (for a press-kit-style signature block, PH "about the maker," etc.):
+> Cognitive Nav is a free, depth-graded epistemic trainer that scores the quality of your questions instead of answering them — built on Hebbian learning research and calibrated to real credentialing exams across 15 fields, from NEET and USMLE to the CFA and the bar exam.
+
+**Answers ready before anyone asks (HN/Reddit will ask these — have the calm version ready, don't improvise under pressure):**
+- *"Isn't this just a ChatGPT wrapper?"* — The value isn't the LLM call, it's the rubric: a fixed 4-layer depth taxonomy, hard gate criteria per layer (with an "iron rule" that never rounds a borderline case up), and domain/tier calibration data hand-built for 15 fields. The LLM is the classifier; the product is the rubric and the redirect logic around it.
+- *"How is this different from a tutor / Khan Academy / etc.?"* — Deliberately the opposite of a tutor: it never explains or answers. See `PRODUCT_ROADMAP.md`'s "Things deliberately NOT on the roadmap" — answer-checking and AI tutoring are explicitly out of scope, on purpose.
+- *"Is my data private / where does this run?"* — Sessions are stored locally-first (IndexedDB via Dexie); nothing requires an account. Optional cloud sync exists only if a user signs in.
+- *"What's the catch / business model?"* — Currently fully free, still in the traction-building phase (see `PRODUCT_ROADMAP.md` Release 5.0). Answer honestly if asked — say a premium tier is planned for advanced content later, free tier stays free.
+
+---
+
 ## 1. Positioning — say this, not that
 
 The product's own tagline is already strong: **"The question is the answer."** Don't dilute it. Every channel below should lead with a version of it, tuned to the audience:

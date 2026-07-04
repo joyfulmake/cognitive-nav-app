@@ -599,6 +599,29 @@ so it stays tier-only rather than getting an invented one.
   Master Plumber, NATE, ASE), Education (Praxis Core/Subject, PGCE, NBPTS), Agriculture &
   Environmental Science (CCA, LEED AP). ~56 boards total across 13 domains.
 
+## Premium-interest capture (2026-07-04)
+
+`src/lib/premiumInterest.ts` — the "1,000 demand signals" trigger from `PRODUCT_ROADMAP.md`
+Release 5.0. A gentle, dismissible-by-nature (not blocking) banner in `src/pages/Home.tsx` shows
+only when `domain !== 'medicine'` and `tier` is T3/T4/T5 — the future-premium zone; everything
+stays fully usable today, this only captures interest.
+
+- Works with zero setup: records a `localStorage` flag (`cogNav-premium-requested`) so a user
+  only counts once and sees a persistent "✓ Thanks — you're on the list" state.
+- If Firebase is configured (`firebaseEnabled`, see `src/lib/firebase.ts`), also increments a
+  single shared Firestore counter doc (`stats/premiumInterest`) so the count shows across all
+  visitors. Gracefully no-ops otherwise — the banner just doesn't show a number.
+- **Manual step required, not something this code can do**: add a Firestore security rule
+  allowing read + increment-only write on that one doc, e.g.:
+  ```
+  match /stats/premiumInterest {
+    allow read: if true;
+    allow write: if request.resource.data.count == resource.data.count + 1;
+  }
+  ```
+  Without this rule, Firestore will reject the write/read and the banner silently falls back to
+  showing no count (never a broken "0" or an error).
+
 ## Vedic foundation
 
 Bhagavad Gita 4.34 (Pariprashna) — knowledge through deep investigative inquiry. The prick IS the guru function. Real strength is helping others surpass your current state.

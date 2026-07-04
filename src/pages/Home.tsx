@@ -10,6 +10,7 @@ import { getSuggestions } from '../core/topicSuggestions'
 import { useVoiceInput } from '../lib/useVoiceInput'
 import { WisdomResources } from '../components/WisdomResources'
 import { AuthPanel } from '../components/AuthPanel'
+import { requestPremiumAccess, hasRequestedPremiumAccess, getPremiumInterestCount } from '../lib/premiumInterest'
 
 const EXAM_BOARDS: { value: ExamBoard; label: string }[] = [
   { value: 'general', label: 'General (no board)' },
@@ -57,6 +58,8 @@ export function Home() {
   const [domain, setDomain] = useState<Domain>('medicine')
   const [tier, setTier] = useState<Tier>('T2')
   const [board, setBoard] = useState<string | undefined>(undefined)
+  const [premiumRequested, setPremiumRequested] = useState(hasRequestedPremiumAccess())
+  const [premiumInterestCount, setPremiumInterestCount] = useState<number | null>(null)
   const [targetDepth, setTargetDepth] = useState<DepthLayer>(1)
   const [showRules, setShowRules] = useState(false)
   const [sessionMode, setSessionMode] = useState<SessionMode>('topic')
@@ -142,6 +145,20 @@ export function Home() {
 
   // Always start at top — prevent browser scroll restoration
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior }) }, [])
+
+  // Premium-interest count — single cheap read; null (Firebase not configured
+  // or read failed) means the UI shows a non-numeric fallback, never a broken 0.
+  useEffect(() => { getPremiumInterestCount().then(setPremiumInterestCount) }, [])
+
+  const handleRequestPremiumAccess = useCallback(() => {
+    setPremiumRequested(true)
+    requestPremiumAccess({ domain, tier }).then(() => getPremiumInterestCount().then(setPremiumInterestCount))
+  }, [domain, tier])
+
+  // True once a domain/tier combo sits in the future-premium zone per
+  // PRODUCT_ROADMAP.md Release 5.0: everything except Medicine's full depth
+  // and T1/T2 of every domain stays free during the traction-building window.
+  const inFuturePremiumZone = domain !== 'medicine' && (tier === 'T3' || tier === 'T4' || tier === 'T5')
 
   // Guided tour — refs and state
   const demoSectionRef = useRef<HTMLElement>(null)
@@ -560,6 +577,34 @@ export function Home() {
                       <option key={b.value} value={b.value}>{b.label}</option>
                     ))}
                   </select>
+                </div>
+              )}
+
+              {/* Gentle, non-blocking premium-interest capture — everything here is
+                  still fully free and usable today; see PRODUCT_ROADMAP.md Release 5.0 */}
+              {inFuturePremiumZone && (
+                <div className="mt-4 rounded-2xl p-4 flex items-center justify-between gap-3 flex-wrap"
+                  style={{ backgroundColor: '#faf8f4', border: '1.5px dashed #c8c0b4' }}>
+                  <p className="font-sans text-xs leading-relaxed" style={{ color: '#8a7d6e', maxWidth: 380 }}>
+                    This depth will be part of a future Premium plan — free to use for now.
+                    {premiumInterestCount != null && premiumInterestCount > 0 && (
+                      <> Already <strong>{premiumInterestCount}</strong> {premiumInterestCount === 1 ? 'person has' : 'people have'} asked for early access.</>
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleRequestPremiumAccess}
+                    disabled={premiumRequested}
+                    className="font-sans text-xs font-bold px-4 py-2 rounded-full transition-all flex-shrink-0"
+                    style={{
+                      backgroundColor: premiumRequested ? 'transparent' : targetMeta.color,
+                      color: premiumRequested ? targetMeta.color : '#fff',
+                      border: `1.5px solid ${targetMeta.color}`,
+                      cursor: premiumRequested ? 'default' : 'pointer',
+                    }}
+                  >
+                    {premiumRequested ? '✓ Thanks — you\'re on the list' : 'Request early access'}
+                  </button>
                 </div>
               )}
 
