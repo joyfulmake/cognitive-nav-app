@@ -1,8 +1,9 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { AppMode, ExamBoard, DepthLayer, SessionMode } from '../core/types'
+import type { AppMode, ExamBoard, DepthLayer, SessionMode, Domain, Tier } from '../core/types'
 import { DEPTH_LAYERS, GATES } from '../core/depthRubric'
+import { DOMAIN_CRUCIBLES } from '../core/domainCrucibles'
 import { useSessionStore } from '../stores/sessionStore'
 import { useUserStore } from '../stores/userStore'
 import { getSuggestions } from '../core/topicSuggestions'
@@ -53,6 +54,8 @@ export function Home() {
   const [appMode, setAppMode] = useState<AppMode>(preferredMode)
   const [topic, setTopic] = useState('')
   const [examBoard, setExamBoard] = useState<ExamBoard>(preferredExamBoard)
+  const [domain, setDomain] = useState<Domain>('medicine')
+  const [tier, setTier] = useState<Tier>('T2')
   const [targetDepth, setTargetDepth] = useState<DepthLayer>(1)
   const [showRules, setShowRules] = useState(false)
   const [sessionMode, setSessionMode] = useState<SessionMode>('topic')
@@ -89,20 +92,20 @@ export function Home() {
   )
 
   const suggestions = useMemo(
-    () => getSuggestions(appMode, appMode === 'clinical' ? examBoard : undefined, 8),
-    [appMode, examBoard]
+    () => getSuggestions(appMode, appMode === 'clinical' ? examBoard : undefined, 8, domain, tier),
+    [appMode, examBoard, domain, tier]
   )
 
-  const fetchVignette = useCallback(async (t: string, board: ExamBoard) => {
+  const fetchVignette = useCallback(async (t: string, board: ExamBoard, d: Domain, tr: Tier) => {
     if (!t.trim() || vignetteTopicRef.current === t) return
     vignetteTopicRef.current = t
     setVignetteLoading(true)
     setVignette(null)
     try {
-      const res = await fetch('/.netlify/functions/vignette', {
+      const res = await fetch('/api/vignette', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: t.trim(), examBoard: board }),
+        body: JSON.stringify({ topic: t.trim(), examBoard: board, domain: d, tier: tr }),
       })
       if (res.ok) {
         const data = await res.json()
@@ -126,6 +129,8 @@ export function Home() {
       uid ?? undefined,
       appMode === 'clinical' && sessionMode === 'case' && vignette ? vignette : undefined,
       appMode === 'clinical' ? sessionMode : 'topic',
+      appMode === 'clinical' ? domain : undefined,
+      appMode === 'clinical' && domain !== 'medicine' ? tier : undefined,
     )
     navigate(`/session/${session.id}`)
   }
@@ -157,9 +162,9 @@ export function Home() {
       vignetteTopicRef.current = ''
       return
     }
-    const t = setTimeout(() => fetchVignette(topic.trim(), examBoard), 900)
+    const t = setTimeout(() => fetchVignette(topic.trim(), examBoard, domain, tier), 900)
     return () => clearTimeout(t)
-  }, [topic, appMode, sessionMode, examBoard, fetchVignette])
+  }, [topic, appMode, sessionMode, examBoard, domain, tier, fetchVignette])
 
   return (
     <div className="min-h-screen">
@@ -223,7 +228,9 @@ export function Home() {
             <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full mb-5"
               style={{ backgroundColor: targetMeta.bgColor, color: targetMeta.color, border: `1.5px solid ${targetMeta.color}30` }}>
               <span className="font-sans text-sm font-bold">
-                {appMode === 'epistemic' ? '✦ General Epistemic' : '⚕ Clinical Crucible'}
+                {appMode === 'epistemic'
+                  ? '✦ General Epistemic'
+                  : `⚕ ${domain === 'medicine' ? 'Clinical Crucible' : `${DOMAIN_CRUCIBLES[domain].label} Crucible`}`}
               </span>
             </div>
 
@@ -455,20 +462,67 @@ export function Home() {
               className="overflow-hidden mb-7"
             >
               <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
-                Exam board calibration
+                Domain
               </label>
-              <select
-                value={examBoard}
-                onChange={e => setExamBoard(e.target.value as ExamBoard)}
-                className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
-                style={{
-                  border: '1.5px solid rgba(26,24,37,0.12)',
-                  boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
-                  color: '#1c1a14',
-                }}
-              >
-                {EXAM_BOARDS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
-              </select>
+              <div className="flex gap-2 mb-5">
+                {(Object.keys(DOMAIN_CRUCIBLES) as Domain[]).map(d => (
+                  <button
+                    key={d}
+                    type="button"
+                    onClick={() => setDomain(d)}
+                    className="flex-1 py-3 px-4 rounded-2xl text-left transition-all"
+                    style={{
+                      background: domain === d ? targetMeta.color : 'linear-gradient(135deg, #fffcf4 0%, #faf4e6 100%)',
+                      border: `1.5px solid ${domain === d ? targetMeta.color : 'rgba(26,24,37,0.09)'}`,
+                      boxShadow: domain === d ? `0 2px 12px ${targetMeta.color}30` : 'none',
+                    }}
+                  >
+                    <div className="font-sans text-sm font-bold" style={{ color: domain === d ? '#fff' : '#1c1a14' }}>
+                      {DOMAIN_CRUCIBLES[d].label}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {domain === 'medicine' ? (
+                <>
+                  <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
+                    Exam board calibration
+                  </label>
+                  <select
+                    value={examBoard}
+                    onChange={e => setExamBoard(e.target.value as ExamBoard)}
+                    className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
+                    style={{
+                      border: '1.5px solid rgba(26,24,37,0.12)',
+                      boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
+                      color: '#1c1a14',
+                    }}
+                  >
+                    {EXAM_BOARDS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                  </select>
+                </>
+              ) : (
+                <>
+                  <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
+                    Tier calibration
+                  </label>
+                  <select
+                    value={tier}
+                    onChange={e => setTier(e.target.value as Tier)}
+                    className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
+                    style={{
+                      border: '1.5px solid rgba(26,24,37,0.12)',
+                      boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
+                      color: '#1c1a14',
+                    }}
+                  >
+                    {(Object.entries(DOMAIN_CRUCIBLES[domain].tiers) as [Tier, { label: string }][]).map(([t, info]) => (
+                      <option key={t} value={t}>{t} — {info.label}</option>
+                    ))}
+                  </select>
+                </>
+              )}
 
               {/* Session mode — Topic vs Case-based */}
               <div className="mt-4">
@@ -478,7 +532,7 @@ export function Home() {
                 <div className="flex gap-2">
                   {([
                     { id: 'topic', label: 'Topic-based', desc: 'Ask freely about a topic' },
-                    { id: 'case',  label: 'Case-based',  desc: 'Start from a clinical vignette' },
+                    { id: 'case',  label: 'Case-based',  desc: domain === 'medicine' ? 'Start from a clinical vignette' : 'Start from a case scenario' },
                   ] as { id: SessionMode; label: string; desc: string }[]).map(m => (
                     <button
                       key={m.id}
@@ -906,7 +960,7 @@ export function Home() {
                   <div className="flex items-center gap-2 mb-3">
                     <span className="font-mono text-xs font-bold tracking-widest uppercase"
                       style={{ color: targetMeta.color }}>
-                      ⚕ Clinical vignette
+                      {domain === 'medicine' ? '⚕ Clinical vignette' : '⚙ Case scenario'}
                     </span>
                     {vignetteLoading && (
                       <motion.div
@@ -931,7 +985,7 @@ export function Home() {
                   {vignette && !vignetteLoading && (
                     <button
                       type="button"
-                      onClick={() => { vignetteTopicRef.current = ''; fetchVignette(topic.trim(), examBoard) }}
+                      onClick={() => { vignetteTopicRef.current = ''; fetchVignette(topic.trim(), examBoard, domain, tier) }}
                       className="mt-3 font-mono text-xs transition-colors hover:opacity-70"
                       style={{ color: targetMeta.color }}
                     >

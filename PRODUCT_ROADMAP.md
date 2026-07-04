@@ -167,6 +167,57 @@ All five features live. See `CLAUDE.md#clinical-crucible--release-23-2026-06-30`
 | Export session data | CSV or JSON of sessions for use in institutional LMS | Interoperability with existing tools. |
 | LMS integration (Canvas, Moodle) | Embed sessions into existing course environments | Reduces friction for institutional adoption. |
 
+### Release 4.0 — Universal Domain Crucibles (All Fields, All Depths)
+
+**Theme**: Clinical Crucible proved the pattern — pick a domain, calibrate the gates to a real professional/academic standard, use a case to anchor the questions. Generalize that pattern from one domain (medicine) to any domain, and from one tier of calibration (exam board) to the full ladder from school to frontier expertise. At every gate mastered, tell the learner what that level of inquiry is actually worth outside the app: what it signals, what skill it names, and what kind of opportunity typically requires it.
+
+This is the biggest structural idea on the roadmap. It turns `examBoard` (medicine-only) into a general `{ domain, tier }` pair that any of the existing gate/rubric/vignette machinery already knows how to consume.
+
+#### The tier ladder (replaces "exam board" as the universal calibration axis)
+
+The existing L1–L4 depth rubric already measures *how* someone is thinking, independent of domain. Tier measures *how far along* the learner is in that domain, and calibrates what counts as a qualifying question at each L-gate — exactly what `examBoard` already does inside Clinical Crucible (NEET UG vs. USMLE-3 vs. MBBS Y1 expect different things at the same gate). Generalizing it:
+
+| Tier | Real-world stage | Example calibration anchors |
+|------|-------------------|------------------------------|
+| T1 — Foundational | Secondary/high school | Board exams, Olympiads, A-Levels/IB |
+| T2 — Undergraduate | Bachelor's study, early professional | University coursework, entry licensing exams |
+| T3 — Graduate / Specialist | Master's, licensed professional, board-certified | Professional boards, specialist certification |
+| T4 — Doctoral / Research | PhD candidate, principal-investigator track | Qualifying exams, dissertation-defense standard |
+| T5 — Frontier / Expert | Postdoc, field-shaping practitioner | Peer-review standard, industry thought leadership |
+
+Clinical Crucible's existing `examBoard` values slot into medicine's tier presets as actually shipped: T2 — MBBS Y1/Y2, NEET UG, USMLE Step 1, general; T3 — NEET PG, USMLE Step 2, PLAB; T4 — NEET SS, USMLE Step 3. T1 and T5 aren't populated for medicine yet (no content existed there before this either) — nothing about the current clinical calibration changed, it became the reference implementation for the pattern.
+
+#### Core generalization
+
+**Status (2026-07-04): `{ domain, tier }` calibration engine — shipped and tested.** Medicine migrated unchanged (byte-identical calibration/case-style/case-instruction text, verified by a throwaway equivalence script), and **Engineering** shipped as the pilot second domain, live end-to-end in the real UI (Domain selector → tier dropdown → evaluate/vignette calibration → session display), not just types. See `CLAUDE.md` for the implementation.
+
+| Idea | What it does | Why | Status |
+|------|--------------|-----|--------|
+| `{ domain, tier }` calibration engine | Data-driven registry (`src/core/domainCrucibles.ts`): one entry per domain, each with tier metadata, a static evaluate.ts calibration block, and vignette.ts case style/instructions | The gate/rubric/prick machinery was already domain-agnostic in code — only the system-prompt calibration text was clinical-specific. This was a data-modeling change, not a rewrite | **Live** — Medicine + Engineering |
+| Domain taxonomy | Seed an initial domain bank: Medicine & Health Sciences, Law, Engineering (Mechanical/Electrical/Civil/Chemical), Computer Science & Software, Physical Sciences (Physics/Chemistry/Earth Science), Life Sciences, Mathematics, Business/Economics/Finance, Humanities (History/Philosophy/Literature), Social Sciences (Psychology/Sociology/Political Science), Arts & Design, Trades & Vocational, Education, Agriculture & Environmental Science, Entrepreneurship | Covers the shape of "all domains in the world" without pretending to be exhaustive on day one — new domains are additive config, not code changes | Only Medicine + Engineering populated so far — next item |
+| Universal topic bank per domain × tier | Extend `topicSuggestions.ts`'s pattern (currently clinical-board-only + a 6-item Engineering placeholder) to every domain × tier pair | Same mechanism already built; needs content, not architecture | Placeholder only for Engineering — next item |
+| Case/vignette generalization | Generalize `vignette.ts` beyond clinical + engineering cases to more domain-appropriate anchors (a legal fact pattern, a historical primary source, a business case study) | The case-based session mode (`sessionMode: 'case'`) is domain-agnostic plumbing — the registry already supports adding a `caseInstructions` per domain | Live for Medicine + Engineering — next item is more domains |
+| Domain-expert contribution mode | Let a subject-matter expert submit/tune gate criteria for a domain the core team hasn't hand-calibrated | "All domains in the world" is unbounded for one team to calibrate alone; crowdsourced calibration is the only way this scales honestly | Not started |
+
+#### Gate Readiness Profile — what mastering a gate is worth in the world
+
+| Idea | What it does | Why |
+|------|--------------|-----|
+| Readiness signal on gate mastery | Alongside the existing confetti/ring-burst celebration, show a plain-language line naming what this gate, at this domain × tier, typically signals — e.g. "This L3 mastery in Thermodynamics at T2 reflects reasoning expected of a final-year mechanical engineering undergraduate." | Turns an abstract "you mastered a gate" into something the learner can actually place themselves against. |
+| Skill tag extraction | Map the specific cognitive move that qualified each gate (differential reasoning, threshold reasoning, systems thinking, falsifiability, root-cause analysis, counterfactual reasoning) to a portable, resume-legible skill name | The prick already names the missing cognitive act (`E-03`); this just names the *present* one when a gate is won, and accumulates it. |
+| Opportunity signal (illustrative, not a job board) | Show realistic role/opportunity examples typically associated with a domain × tier × depth combination — framed explicitly as "questions at this level are characteristic of roles such as…", never a guarantee or listing | Gives the abstraction of "depth" a concrete real-world anchor without turning the app into a jobs product. |
+| Domain readiness index | A per-domain profile-strength meter built from gates mastered across tiers and depths in that domain | Makes the multi-domain, multi-tier system legible at a glance — "where am I strong, where am I still at L1." |
+| Readiness profile export | Exportable summary (PDF/shareable link) of domain × tier × depth achievements, skill tags earned, and gate history | Reuses the CSV/JSON session export already planned in Release 3.0; makes it useful for a resume, portfolio site, or college application rather than just an LMS. |
+| Cross-domain transfer view | Show the learner's highest depth reached across *all* domains attempted, separate from domain-specific expertise | The L1–L4 rubric measures a transferable meta-skill; this makes visible that reaching L3 in one domain predicts the *pattern* transfers, even where domain content knowledge is still shallow. |
+
+#### Supporting feature
+
+| Idea | What it does | Why |
+|------|--------------|-----|
+| Domain onboarding wizard | On first pick of a new domain, ask one question — "Where are you right now: pre-university / undergraduate / graduate / professional / researcher?" — to pre-select tier (adjustable anytime) | Removes the burden of understanding the tier ladder before a learner can start; T1–T5 becomes an implementation detail, not a form field. |
+
+**Guardrail**: readiness signals, skill tags, and opportunity examples are illustrative self-assessment aids, not certifications, credentials, or job guarantees — consistent with the existing product philosophy of measuring the quality of inquiry, not issuing answers or scores of ability. See the next section.
+
 ---
 
 ## Things deliberately NOT on the roadmap
@@ -181,3 +232,4 @@ These come up often but are out of scope for this product:
 | Gamification (badges, leaderboards) | The mastery gate IS the game. Adding badges on top cheapens the signal. |
 | Native mobile app | PWA covers the mobile use case. Native app justified only if PWA proves insufficient for key flows. |
 | Social feed / sharing by default | Inquiry is personal. Social features should be opt-in and purpose-built (team rooms) not generic. |
+| Job board / guaranteed credentialing | Opportunity signals in Release 4.0 are illustrative, not a placement service or accredited certification — that's a liability and identity shift Cognitive Nav should not take on. |

@@ -70,14 +70,14 @@ or via CLI: `npx wrangler pages secret put KEY_NAME --project-name cognitive-nav
 
 | File | Endpoint | Purpose |
 |------|----------|---------|
-| `functions/api/evaluate.ts` | `POST /api/evaluate` | Groq LLM depth evaluation proxy — enhanced with diff-dx Gate 2 and management Gate 3 clinical criteria |
+| `functions/api/evaluate.ts` | `POST /api/evaluate` | Groq LLM depth evaluation proxy — domain calibration (medicine/engineering) injected from `src/core/domainCrucibles.ts`, includes diff-dx Gate 2 and management Gate 3 clinical criteria |
 | `functions/api/whisper.ts` | `POST /api/whisper` | Groq Whisper STT — accepts `{ audioBase64, mimeType, language? }` |
 | `functions/api/tts.ts` | `POST /api/tts` | ElevenLabs TTS proxy — accepts `{ text, voice_id, model_id, style, stability, output_format }`, returns audio/mpeg |
 | `functions/api/cartesia-tts.ts` | `POST /api/cartesia-tts` | Cartesia Sonic-2 TTS proxy — accepts `{ text, voice_id, language, speed, emotion[] }`, returns audio/mpeg (no cache) |
 | `functions/api/guide-qa.ts` | `POST /api/guide-qa` | Interactive guide Q&A — accepts `{ question, lang }`, answers in character as the Guide, max 120 tokens |
 | `functions/api/openai-tts.ts` | `POST /api/openai-tts` | OpenAI tts-1-hd proxy — accepts `{ text, voice, speed }`, returns audio/mpeg (cached in Dexie `oa2:` prefix) |
 | `functions/api/context.ts` | `POST /api/context` | Depth-aware context generator — accepts `{ topic, gate, lang }`, returns `{ hook, facts[], searches[] }` via Groq |
-| `functions/api/vignette.ts` | `POST /api/vignette` | Clinical case vignette generator — accepts `{ topic, examBoard }`, returns `{ vignette, differentials[] }` via Groq |
+| `functions/api/vignette.ts` | `POST /api/vignette` | Domain-calibrated case generator — accepts `{ topic, examBoard? OR domain+tier }`, returns `{ vignette, differentials[] }` via Groq. Clinical vignettes for medicine, engineering failure/design cases for engineering |
 
 ## Voice input UI (Wispr-style — redesigned 2026-06-05)
 
@@ -359,10 +359,11 @@ Score = quality of inquiry practice, not intelligence.
 
 | File | Purpose |
 |------|---------|
-| `functions/api/evaluate.ts` | Groq LLM evaluation (enhanced: diff-dx + management gates) |
+| `functions/api/evaluate.ts` | Groq LLM evaluation (domain calibration + diff-dx/management gates) |
 | `functions/api/tts.ts` | ElevenLabs TTS proxy |
 | `functions/api/whisper.ts` | Groq Whisper STT proxy |
-| `functions/api/vignette.ts` | Clinical vignette generator — case-based session mode |
+| `functions/api/vignette.ts` | Domain-calibrated case generator — case-based session mode |
+| `src/core/domainCrucibles.ts` | `{ domain, tier }` calibration registry (Medicine, Engineering) |
 | `src/core/clinicalBodySystems.ts` | 13 body system types, color tokens, `classifyTopicToSystem()` |
 | `src/lib/db.ts` | Dexie schema v2 (5 tables including ttsCache) |
 | `src/lib/useElevenLabsTTS.ts` | EL TTS hook with Dexie cache, ref-based availability |
@@ -501,6 +502,47 @@ Applicable to neet-ss, usmle-2, usmle-3. Gate 3 benefits from questions probing:
 
 `EvaluateRequest` (types.ts):
 - `vignette?: string` — passed through api.ts to evaluate.ts; injected into LLM user message when present
+
+## `{ domain, tier }` calibration engine (2026-07-04)
+
+Generalizes Clinical Crucible's medicine-only `ExamBoard` calibration into a domain-agnostic
+engine (`PRODUCT_ROADMAP.md` Release 4.0, item 1). Medicine's behavior is unchanged — this only
+adds a second domain (Engineering) as a pilot proving the abstraction generalizes.
+
+**`src/core/domainCrucibles.ts`** — single source of truth, imported by both the frontend and
+the two Cloudflare Pages Functions below (Functions bundle relative imports across the repo via
+wrangler's esbuild pass; this module is pure data/logic, no DOM, so it's safe to share):
+- `Domain = 'medicine' | 'engineering'`, `Tier = 'T1'..'T5'` (types.ts)
+- `DOMAIN_CRUCIBLES: Record<Domain, DomainCrucibleConfig>` — per domain: tier metadata
+  (medicine's tiers carry `legacyExamBoards` for backward-compat resolution), a static
+  `calibrationBlock` (the evaluate.ts system-prompt section), `caseWriterRole` +
+  `caseStyle` + `caseInstructions` (vignette.ts), and `layerExamples` (LevelStudyPanel's
+  "a question that lives at this depth" illustration per L1–L4)
+- `resolveDomain(appMode, domain?)`, `resolveTier(domain, examBoard?, tier?)`,
+  `resolveCaseStyleKey(domain, examBoard?, tier?)` — backward-compat resolution: old clients
+  sending only `appMode: 'clinical'` + `examBoard` resolve to `domain: 'medicine'` and the
+  matching tier, no data migration needed (Dexie sessions aren't indexed on these fields)
+
+**Medicine migration is byte-identical** — verified with a throwaway equivalence script
+comparing the registry-driven output against the pre-generalization hardcoded text for the
+calibration block, case-writer role, all 10 `caseStyle` entries, and `caseInstructions`. Zero
+diffs. The one intentional behavior change: `evaluate.ts`'s calibration block is now only
+injected when a domain resolves (previously the clinical calibration text was static and always
+present, even in `epistemic` mode, where the model was told to ignore it — now it's just absent).
+
+**`functions/api/evaluate.ts`** — `BASE_SYSTEM_PROMPT` has a `{{DOMAIN_CALIBRATION}}`
+placeholder; `buildSystemPrompt(domain)` substitutes the resolved domain's `calibrationBlock`
+(or empty string for epistemic/no domain). Context lines send `Exam board calibration: X` for
+medicine (unchanged) or `Domain: X, Tier: Y (label)` for other domains.
+
+**`functions/api/vignette.ts`** — also fixed a pre-existing bug found while wiring this up:
+the frontend call was still hitting the stale `/.netlify/functions/vignette` path from before
+the Cloudflare Pages migration (`463735d`), so case-based vignettes were silently 404ing in
+production. Now calls `/api/vignette`.
+
+**Known content gap (by design, deferred)**: `topicSuggestions.ts` has only a 6-item hardcoded
+Engineering placeholder list, not real per-tier content — universal topic bank generalization is
+explicitly the next roadmap item, not part of this phase.
 
 ## Vedic foundation
 

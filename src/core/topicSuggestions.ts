@@ -1,4 +1,4 @@
-import type { AppMode, ExamBoard } from './types'
+import type { AppMode, ExamBoard, Domain, Tier } from './types'
 
 export interface TopicSuggestion {
   label: string
@@ -128,11 +128,27 @@ export const CLINICAL_SUGGESTIONS: Partial<Record<ExamBoard, TopicSuggestion[]>>
   ],
 }
 
+// Provisional placeholder for the Engineering pilot domain — not tier-specific yet.
+// Pending: universal topic bank per domain × tier (PRODUCT_ROADMAP.md Release 4.0).
+const ENGINEERING_SUGGESTIONS: TopicSuggestion[] = [
+  { label: 'Cantilever beam deflection under load' },
+  { label: 'Pressure vessel safety factor design' },
+  { label: 'Fatigue failure in rotating shafts' },
+  { label: 'Heat exchanger thermal efficiency' },
+  { label: 'Control system feedback stability' },
+  { label: 'Composite material delamination' },
+]
+
 export function getSuggestions(
   appMode: AppMode,
   examBoard?: ExamBoard,
-  count = 8
+  count = 8,
+  domain?: Domain,
+  _tier?: Tier
 ): TopicSuggestion[] {
+  if (appMode === 'clinical' && domain === 'engineering') {
+    return ENGINEERING_SUGGESTIONS.slice(0, count)
+  }
   if (appMode === 'clinical') {
     const board = examBoard ?? 'general'
     const specific = CLINICAL_SUGGESTIONS[board] ?? CLINICAL_SUGGESTIONS['general'] ?? []

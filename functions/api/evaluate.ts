@@ -1,6 +1,7 @@
 import Groq from 'groq-sdk'
+import { DOMAIN_CRUCIBLES, resolveDomain, resolveTier } from '../../src/core/domainCrucibles'
 
-const SYSTEM_PROMPT = `You are a strict cognitive depth evaluator for an epistemic learning engine called Cognitive Nav.
+const BASE_SYSTEM_PROMPT = `You are a strict cognitive depth evaluator for an epistemic learning engine called Cognitive Nav.
 
 THE FOUR DEPTH LAYERS:
 
@@ -50,32 +51,7 @@ REQUIRES stepping entirely outside the system to question WHY it was designed th
 THE IRON RULE:
 When a question is borderline between two layers, ALWAYS classify it at the LOWER layer. Users must earn higher layers through their own inquiry — they are never gifted them.
 
-CLINICAL CALIBRATION:
-When appMode is "clinical", these ADDITIONAL requirements apply on top of the base gate criteria:
-
-DIFFERENTIAL DIAGNOSIS (Gate 2, clinical mode):
-Beyond the base Gate 2 condition (specific failure mode), clinical Gate 2 also requires the question to engage at least one of:
-  a) A competing diagnosis that could produce a similar presentation and why it can be ruled in/out, OR
-  b) A condition that would change the interpretation of a key finding (e.g. "What if this patient also has X — how does that change the bilirubin pattern?"), OR
-  c) A named physiological edge case specific to a clinical population (e.g. pregnant, elderly, immunocompromised)
-✗ NOT clinical Gate 2: "What if there is organ damage?" — no specific competing condition named
-✗ NOT clinical Gate 2: "What happens in severe cases?" — too generic
-✓ Clinical Gate 2: "What if this patient has both haemolysis AND hepatocellular damage — how do the two bilirubin fractions compete and what labs differentiate them?"
-✓ Clinical Gate 2: "What if the patient were pregnant — how would this alter the threshold for bilirubin exchange transfusion?"
-
-MANAGEMENT PHILOSOPHY (Gate 3, high-stakes boards: neet-ss, usmle-2, usmle-3):
-Beyond the base Gate 3 (design assumptions), for these boards Gate 3 also benefits from engaging:
-  a) WHY a treatment approach was designed as it was (e.g. "Why does sepsis management target MAP ≥ 65 specifically — what assumption about tissue perfusion physiology does this threshold encode?"), OR
-  b) The philosophical tension between competing management frameworks (e.g. conservative vs aggressive, organ-support vs cure), OR
-  c) What the existence of a treatment reveals about how medicine models the disease
-
-Per-board Gate 2 depth calibration:
-- neet-ss / usmle-3: requires surgical or ICU management decision-depth condition
-- usmle-2: requires acute management scenario with competing clinical priorities
-- usmle-1 / neet-pg / mbbs-y2: requires specific biochemical or mechanistic condition with differential
-- plab: requires named NICE protocol deviation or clinical guideline boundary case
-- neet-ug / mbbs-y1: requires specific physiological condition or named failure mechanism
-
+{{DOMAIN_CALIBRATION}}
 THE PRICK:
 When depth < targetDepth, do NOT answer. Generate a surgical one-or-two-sentence redirect that:
 - Names the exact gate the question has not cleared
@@ -109,6 +85,13 @@ Use real, searchable Wikipedia article titles. 2–5 words only.
 RESPONSE FORMAT — valid JSON only, no markdown, no code fences:
 {"depthScore":<1|2|3|4>,"prickText":<prick string if depth < activeGate, else null>,"appreciation":<1-2 sentences naming what THIS question specifically achieved>,"explanation":<one sentence on which gate was or was not cleared and why>,"hint":<concrete next-layer example starting with 'e.g.'>,"scienceInsight":<2 sentences of specific neuroscience>,"imageQuery":<Wikipedia article title 2-5 words>}`
 
+function buildSystemPrompt(domain: string | undefined): string {
+  const calibrationBlock = domain && domain in DOMAIN_CRUCIBLES
+    ? DOMAIN_CRUCIBLES[domain as keyof typeof DOMAIN_CRUCIBLES].calibrationBlock + '\n'
+    : ''
+  return BASE_SYSTEM_PROMPT.replace('{{DOMAIN_CALIBRATION}}', calibrationBlock)
+}
+
 function extractJson(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
   if (fenced) return fenced[1].trim()
@@ -138,7 +121,7 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
     const body = await ctx.request.text()
     if (!body) return new Response(JSON.stringify({ error: 'Missing body' }), { status: 400, headers: cors })
 
-    const { question, topic, appMode, examBoard, targetDepth, activeGate, reformulationIndex, previousReformulations, vignette } = JSON.parse(body)
+    const { question, topic, appMode, examBoard, domain, tier, targetDepth, activeGate, reformulationIndex, previousReformulations, vignette } = JSON.parse(body)
 
     if (!question || !topic || !appMode) {
       return new Response(JSON.stringify({ error: 'Missing required fields' }), { status: 400, headers: cors })
@@ -146,6 +129,8 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
 
     const resolvedTarget: number = targetDepth ?? 3
     const resolvedActiveGate: number = activeGate ?? resolvedTarget
+    const resolvedDomain = resolveDomain(appMode, domain)
+    const resolvedTier = resolvedDomain ? resolveTier(resolvedDomain, examBoard, tier) : undefined
 
     const client = new Groq({ apiKey: ctx.env.GROQ_API_KEY })
 
@@ -155,7 +140,12 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
       `User's final target depth: Layer ${resolvedTarget}`,
       `User's ACTIVE GATE to clear right now: Layer ${resolvedActiveGate} (this is the gate being worked on)`,
     ]
-    if (examBoard) contextLines.push(`Exam board calibration: ${examBoard}`)
+    if (examBoard) {
+      contextLines.push(`Exam board calibration: ${examBoard}`)
+    } else if (resolvedDomain && resolvedTier) {
+      const tierLabel = DOMAIN_CRUCIBLES[resolvedDomain].tiers[resolvedTier]?.label ?? resolvedTier
+      contextLines.push(`Domain: ${DOMAIN_CRUCIBLES[resolvedDomain].label}, Tier: ${resolvedTier} (${tierLabel})`)
+    }
     if (vignette) contextLines.push(`\nCLINICAL VIGNETTE (case-based session):\n"${vignette}"\nEvaluate the question in the context of this case. The question should demonstrate depth of understanding about the mechanisms relevant to the presented patient.`)
     if (reformulationIndex > 0 && previousReformulations?.length > 0) {
       contextLines.push(`\nDepth trajectory so far:`)
@@ -171,7 +161,7 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
       max_tokens: 600,
       response_format: { type: 'json_object' },
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
+        { role: 'system', content: buildSystemPrompt(resolvedDomain) },
         { role: 'user', content: userMessage },
       ],
     })

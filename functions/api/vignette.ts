@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk'
+import { DOMAIN_CRUCIBLES, resolveDomain, resolveCaseStyleKey } from '../../src/core/domainCrucibles'
 
 function extractJson(raw: string): string {
   const fenced = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
@@ -7,19 +8,6 @@ function extractJson(raw: string): string {
   const last  = raw.lastIndexOf('}')
   if (brace !== -1 && last !== -1) return raw.slice(brace, last + 1)
   return raw.trim()
-}
-
-const BOARD_STYLE: Record<string, string> = {
-  'neet-ug':  'NEET UG undergraduate medical India — physiological depth, clinical reasoning at mechanism level',
-  'neet-pg':  'NEET PG postgraduate India — emphasise pathophysiology, diagnostics, management principles',
-  'neet-ss':  'NEET SS super-specialty India — surgical or subspecialty decision-making, advanced management',
-  'usmle-1':  'USMLE Step 1 — basic science mechanisms, biochemistry, pathophysiology',
-  'usmle-2':  'USMLE Step 2 CK — clinical knowledge, management of acute presentations',
-  'usmle-3':  'USMLE Step 3 — clinical management, ICU decisions, long-term care',
-  'plab':     'PLAB UK — NICE guidelines, UK NHS protocols, GP and hospital presentations',
-  'mbbs-y1':  'MBBS Year 1 — basic physiology and anatomy, first principles',
-  'mbbs-y2':  'MBBS Year 2 — applied pathology, pharmacology, early clinical reasoning',
-  'general':  'general medical education',
 }
 
 const cors = {
@@ -39,12 +27,15 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
   }
 
   try {
-    const { topic, examBoard } = await ctx.request.json() as any
+    const { topic, examBoard, domain, tier } = await ctx.request.json() as any
     if (!topic) {
       return new Response(JSON.stringify({ error: 'Missing topic' }), { status: 400, headers: cors })
     }
 
-    const style = BOARD_STYLE[examBoard ?? 'general'] ?? BOARD_STYLE['general']
+    const resolvedDomain = resolveDomain('clinical', domain) ?? 'medicine'
+    const config = DOMAIN_CRUCIBLES[resolvedDomain as keyof typeof DOMAIN_CRUCIBLES]
+    const styleKey = resolveCaseStyleKey(resolvedDomain, examBoard, tier)
+    const style = config.caseStyle[styleKey] ?? config.caseStyle[config.defaultCaseStyleKey]
     const client = new Groq({ apiKey: ctx.env.GROQ_API_KEY })
 
     const res = await client.chat.completions.create({
@@ -54,22 +45,11 @@ export async function onRequest(ctx: { request: Request; env: Record<string, str
       messages: [
         {
           role: 'system',
-          content: `You are a clinical educator writing exam-style vignettes for ${style}. Return valid JSON only, no markdown.`,
+          content: `You are a ${config.caseWriterRole} writing exam-style vignettes for ${style}. Return valid JSON only, no markdown.`,
         },
         {
           role: 'user',
-          content: `Write a concise clinical vignette for the topic: "${topic}".
-
-Rules:
-- 3-4 sentences only
-- Include: patient age/sex, presenting complaint, 2-3 key findings (symptoms, signs, or labs)
-- Do NOT include the diagnosis or differential
-- Do NOT include management
-- End naturally, leaving the mechanism unexplained
-- Tone: real hospital/exam case, not textbook prose
-
-Return JSON:
-{"vignette": "<3-4 sentence case>", "differentials": ["<most likely diagnosis>", "<alternative 1>", "<alternative 2>"]}`,
+          content: config.caseInstructions(topic),
         },
       ],
     })

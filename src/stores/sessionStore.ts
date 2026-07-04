@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Session, AppMode, ExamBoard, DepthLayer, Reformulation, SessionMode } from '../core/types'
+import type { Session, AppMode, ExamBoard, DepthLayer, Reformulation, SessionMode, Domain, Tier } from '../core/types'
 import { getActiveGate, MASTERY_REQUIRED } from '../core/depthRubric'
 import { saveSession, getAllSessions } from '../lib/db'
 
@@ -8,7 +8,7 @@ interface SessionState {
   sessions: Session[]
   activeSession: Session | null
   loadSessions: () => Promise<void>
-  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string, vignette?: string, sessionMode?: SessionMode) => Session
+  startSession: (topic: string, appMode: AppMode, targetDepth: DepthLayer, examBoard?: ExamBoard, userId?: string, vignette?: string, sessionMode?: SessionMode, domain?: Domain, tier?: Tier) => Session
   addReformulation: (sessionId: string, reformulation: Reformulation) => void
   completeSession: (sessionId: string) => void
   clearActive: () => void
@@ -29,13 +29,15 @@ export const useSessionStore = create<SessionState>()(
         set({ sessions: all })
       },
 
-      startSession: (topic, appMode, targetDepth, examBoard, userId, vignette, sessionMode) => {
+      startSession: (topic, appMode, targetDepth, examBoard, userId, vignette, sessionMode, domain, tier) => {
         const session: Session = {
           id: makeId(),
           userId: userId ?? null,
           appMode,
           topic,
           examBoard,
+          domain,
+          tier,
           targetDepth,
           levelMastery: {},
           reformulations: [],

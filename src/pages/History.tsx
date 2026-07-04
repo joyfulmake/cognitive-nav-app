@@ -5,6 +5,7 @@ import { useSessionStore } from '../stores/sessionStore'
 import { DEPTH_LAYERS, computePracticeScore, isMasteryComplete, MASTERY_REQUIRED } from '../core/depthRubric'
 import type { DepthLayer, Session } from '../core/types'
 import { classifyTopicToSystem, BODY_SYSTEM_COLORS, type BodySystem } from '../core/clinicalBodySystems'
+import { DOMAIN_CRUCIBLES } from '../core/domainCrucibles'
 
 type Filter = 'all' | 'epistemic' | 'clinical' | 'complete' | 'inprogress'
 
@@ -98,10 +99,17 @@ function SessionCard({ session, index }: { session: Session; index: number }) {
                 Target L{target} · {targetMeta.tag}
               </span>
               <span className="font-mono text-xs text-muted">
-                {session.appMode === 'epistemic' ? 'General Epistemic' : 'Clinical Crucible'}
+                {session.appMode === 'epistemic'
+                  ? 'General Epistemic'
+                  : (!session.domain || session.domain === 'medicine')
+                    ? 'Clinical Crucible'
+                    : `${DOMAIN_CRUCIBLES[session.domain].label} Crucible`}
               </span>
               {session.examBoard && session.examBoard !== 'general' && (
                 <span className="font-mono text-xs text-muted">{session.examBoard.toUpperCase()}</span>
+              )}
+              {!session.examBoard && session.tier && (
+                <span className="font-mono text-xs text-muted">{session.tier}</span>
               )}
               {complete && (
                 <span className="font-mono text-xs font-bold" style={{ color: maxMeta.color }}>✓ complete</span>
@@ -196,7 +204,7 @@ function ConceptCoverage({ sessions }: { sessions: Session[] }) {
 }
 
 function PerformanceBySystem({ sessions }: { sessions: Session[] }) {
-  const clinical = sessions.filter(s => s.appMode === 'clinical' && s.trajectoryVector.length > 0)
+  const clinical = sessions.filter(s => s.appMode === 'clinical' && (!s.domain || s.domain === 'medicine') && s.trajectoryVector.length > 0)
   if (clinical.length === 0) return null
 
   const map: Record<string, { maxDepth: DepthLayer; count: number }> = {}

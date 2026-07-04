@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { Session as SessionType } from '../core/types'
 import { DEPTH_LAYERS } from '../core/depthRubric'
+import { DOMAIN_CRUCIBLES } from '../core/domainCrucibles'
 import { useSessionStore } from '../stores/sessionStore'
 import { useAuthStore } from '../stores/authStore'
 import { useAmbientAudio } from '../lib/useAmbientAudio'
@@ -70,12 +71,22 @@ export function Session() {
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-sans text-sm font-semibold px-3 py-1 rounded-full"
                 style={{ backgroundColor: 'rgba(26,24,37,0.06)', color: '#5a5670' }}>
-                {session.appMode === 'epistemic' ? 'General Epistemic' : 'Clinical Crucible'}
+                {session.appMode === 'epistemic'
+                  ? 'General Epistemic'
+                  : (!session.domain || session.domain === 'medicine')
+                    ? 'Clinical Crucible'
+                    : `${DOMAIN_CRUCIBLES[session.domain].label} Crucible`}
               </span>
               {session.examBoard && session.examBoard !== 'general' && (
                 <span className="font-sans text-sm font-semibold px-3 py-1 rounded-full"
                   style={{ backgroundColor: DEPTH_LAYERS[3].bgColor, color: DEPTH_LAYERS[3].color }}>
                   {session.examBoard.toUpperCase()}
+                </span>
+              )}
+              {!session.examBoard && session.tier && (
+                <span className="font-sans text-sm font-semibold px-3 py-1 rounded-full"
+                  style={{ backgroundColor: DEPTH_LAYERS[3].bgColor, color: DEPTH_LAYERS[3].color }}>
+                  {session.tier}
                 </span>
               )}
               <span className="font-sans text-sm font-bold px-3 py-1 rounded-full"

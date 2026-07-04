@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { DepthLayer, AppMode } from '../core/types'
+import type { DepthLayer, AppMode, Domain } from '../core/types'
 import { DEPTH_LAYERS, MASTERY_REQUIRED } from '../core/depthRubric'
+import { DOMAIN_CRUCIBLES } from '../core/domainCrucibles'
 
 interface Props {
   activeGate: DepthLayer
   appMode: AppMode
+  domain?: Domain
   masteryCount: number
   topic?: string
   defaultOpen?: boolean
@@ -147,7 +149,8 @@ function MasteryDots({ count, required, color }: { count: number; required: numb
   )
 }
 
-export function LevelStudyPanel({ activeGate, appMode, masteryCount, topic = '', defaultOpen = true }: Props) {
+export function LevelStudyPanel({ activeGate, appMode, domain, masteryCount, topic = '', defaultOpen = true }: Props) {
+  const nonMedicineDomain = domain && domain !== 'medicine' ? domain : undefined
   const [open, setOpen] = useState(defaultOpen)
   const meta = DEPTH_LAYERS[activeGate]
   const isFoundation = activeGate === 1
@@ -284,11 +287,11 @@ export function LevelStudyPanel({ activeGate, appMode, masteryCount, topic = '',
               <div>
                 <div className="font-sans text-xs font-bold uppercase tracking-widest mb-2" style={{ color: meta.color }}>
                   A question that lives at this depth
-                  {appMode === 'clinical' ? ' (clinical)' : ' (epistemic)'}
+                  {nonMedicineDomain ? ` (${DOMAIN_CRUCIBLES[nonMedicineDomain].label.toLowerCase()})` : appMode === 'clinical' ? ' (clinical)' : ' (epistemic)'}
                 </div>
                 <div className="p-4 border-2" style={{ borderColor: `${meta.color}40`, backgroundColor: meta.bgColor }}>
                   <p className="font-sans text-base font-semibold text-ink/85 leading-relaxed italic">
-                    {appMode === 'clinical' ? meta.exampleClinical : meta.exampleEpistemic}
+                    {nonMedicineDomain ? DOMAIN_CRUCIBLES[nonMedicineDomain].layerExamples[activeGate] : appMode === 'clinical' ? meta.exampleClinical : meta.exampleEpistemic}
                   </p>
                 </div>
                 <p className="font-sans text-xs text-ink/45 mt-2 leading-relaxed">

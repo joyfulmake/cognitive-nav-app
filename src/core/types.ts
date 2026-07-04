@@ -4,6 +4,13 @@ export type AppMode = 'epistemic' | 'clinical'
 
 export type ExamBoard = 'neet-ug' | 'neet-pg' | 'neet-ss' | 'usmle-1' | 'usmle-2' | 'usmle-3' | 'plab' | 'mbbs-y1' | 'mbbs-y2' | 'general'
 
+// Domain generalizes "Clinical Crucible" beyond medicine. Tier generalizes ExamBoard beyond
+// medicine's specific exams into a universal school→undergrad→grad→doctoral→frontier ladder.
+// See src/core/domainCrucibles.ts. Both optional/additive — existing clinical sessions without
+// these fields are treated as domain: 'medicine' at read time.
+export type Domain = 'medicine' | 'engineering'
+export type Tier = 'T1' | 'T2' | 'T3' | 'T4' | 'T5'
+
 export type IntelligenceTag = 'IQ' | 'EQ' | 'Spatial'
 
 export interface DepthLayerMeta {
@@ -45,6 +52,8 @@ export interface Session {
   appMode: AppMode
   topic: string
   examBoard?: ExamBoard
+  domain?: Domain
+  tier?: Tier
   targetDepth: DepthLayer
   levelMastery: Partial<Record<DepthLayer, number>>
   reformulations: Reformulation[]
@@ -63,6 +72,8 @@ export interface EvaluateRequest {
   topic: string
   appMode: AppMode
   examBoard?: ExamBoard
+  domain?: Domain
+  tier?: Tier
   targetDepth: DepthLayer
   activeGate: DepthLayer
   reformulationIndex: number
@@ -98,6 +109,7 @@ export interface TeamSession {
   topic: string
   appMode: AppMode
   examBoard?: ExamBoard
+  domain?: Domain
   debateMode: NyayaDebateMode
   members: TeamMember[]
   collectiveDepth: DepthLayer
@@ -117,6 +129,8 @@ export interface UserProfile {
   name: string
   preferredMode: AppMode
   preferredExamBoard?: ExamBoard
+  preferredDomain?: Domain
+  preferredTier?: Tier
   conceptCoverage: Record<string, DepthLayer>
   totalSessions: number
   createdAt: string
