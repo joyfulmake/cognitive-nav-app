@@ -219,6 +219,33 @@ Clinical Crucible's existing `examBoard` values slot into medicine's tier preset
 
 **Guardrail**: readiness signals, skill tags, and opportunity examples are illustrative self-assessment aids, not certifications, credentials, or job guarantees — consistent with the existing product philosophy of measuring the quality of inquiry, not issuing answers or scores of ability. See the next section.
 
+### Release 5.0 — Monetization (Individual + Institutional)
+
+**Theme**: Both individual premium and institutional tiers, eventually — but not until the zero-cost growth playbook (`GROWTH_PLAYBOOK.md`) has run and produced at least a week of real traction. Charging before that risks the "free, no-login" hook the whole launch sequence depends on. **Status: not started — design only, for when traction warrants it.**
+
+**Trigger to build**: 1,000+ *demand signals* — not raw signups or traffic, but people actually hitting the free-tier wall and asking for more (clicking an "unlock T3+" / "unlock this board" prompt, requesting a domain/tier not yet free, etc.). This is deliberate: the free tier is designed so that using it thoroughly makes you want more (T1–T2 everywhere, full depth only in one flagship domain) — counting people who *ask* is a much stronger willingness-to-pay signal than counting people who merely visit. Needs a lightweight "notify me" / "request access" capture point wired in before the 1,000 count can even start (doesn't exist yet — cheap to add, a button + a log entry).
+
+**Sequencing once triggered**: individual premium first, institutional after. Individual premium is a small build (paywall gate + Razorpay Subscriptions on top of the existing tier/domain structure). Institutional is a much bigger build (teacher dashboard, curriculum tools, LMS export — none of Release 3.0 exists yet) and a slower, relationship-driven sale to coaching institutes, not a checkout button. Let individual premium's early conversion data validate willingness-to-pay before investing in the institutional build.
+
+**Free tier (stays free indefinitely, not just during the traction window)**:
+- General Epistemic mode, unlimited, all depths — the broad top-of-funnel; never gate this.
+- T1–T2 (school/undergraduate) of all 15 domains — lets anyone try any field shallowly; this is what makes people share it ("wait, it supports my exact field").
+- One flagship domain at full T1–T5 depth (Medicine — the NEET/USMLE/PLAB beachhead audience from the growth playbook) to keep that community-driven growth loop free.
+- The core mechanic itself, always: evaluation, gates, pricks, appreciation, science insight. Paywalling the actual intelligence breaks the trust the whole product is built on.
+
+**Individual premium — the line to gate**:
+
+| Idea | What it does | Why this line |
+|------|--------------|----------------|
+| T3–T5 for the other 14 domains | Graduate/professional/doctoral/frontier tiers, and real board-flavor selection (CFA Level 3, Bar Exam, PE, GIAC GSE, etc.), require a paid plan outside the free flagship domain | Selecting a real professional exam board is itself a strong signal of seriousness and ability to pay — these are people already spending on courses/question banks elsewhere. T1–T2 stays free everywhere, so this doesn't touch the viral top-of-funnel |
+| Case-based sessions beyond a free quota | Vignette/case generation costs real Groq tokens per call; free tier gets a daily/weekly cap, premium is unlimited | Natural soft-limit-into-upsell tied to actual marginal cost, not an arbitrary paywall |
+| Team / Nyaya Darshana mode | Multi-user study rooms (Release 2.2) | Higher infra cost (WebSocket rooms) and higher value for serious study groups — natural premium feature once built |
+| Advanced analytics | Domain readiness index, cross-domain transfer view, readiness profile export (Gate Readiness Profile ideas above) | Deepens the "how am I doing" picture without touching the free basic session history |
+
+**Institutional tier — separate sale, later still**: everything in Release 3.0 above (teacher dashboard, curriculum builder, class analytics, LMS export/integration) plus bulk seat licensing. Sold to coaching institutes and schools, not individual learners — a different sales motion entirely, worth revisiting only after the individual premium tier is validated.
+
+**Payments**: no payment integration exists yet (`package.json` has no Razorpay/Stripe dependency, no `functions/api/` payment endpoint, no entitlement fields on `UserProfile`/`Session`). Individual and institutional tiers likely need different Razorpay products (Subscriptions for individuals vs. Invoices for institutional billing) — scope this once a tier is actually ready to build.
+
 ---
 
 ## Things deliberately NOT on the roadmap
