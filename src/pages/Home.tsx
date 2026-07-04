@@ -123,14 +123,15 @@ export function Home() {
       await initProfile()
       uid = useUserStore.getState().userId
     }
+    const medicineTierHasBoard = domain === 'medicine' && !!DOMAIN_CRUCIBLES.medicine.tiers[tier]?.legacyExamBoards
     const session = startSession(
       topic.trim(), appMode, targetDepth,
-      appMode === 'clinical' ? examBoard : undefined,
+      appMode === 'clinical' && medicineTierHasBoard ? examBoard : undefined,
       uid ?? undefined,
       appMode === 'clinical' && sessionMode === 'case' && vignette ? vignette : undefined,
       appMode === 'clinical' ? sessionMode : 'topic',
       appMode === 'clinical' ? domain : undefined,
-      appMode === 'clinical' && domain !== 'medicine' ? tier : undefined,
+      appMode === 'clinical' && !medicineTierHasBoard ? tier : undefined,
     )
     navigate(`/session/${session.id}`)
   }
@@ -465,13 +466,18 @@ export function Home() {
               <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
                 Domain
               </label>
-              <div className="flex gap-2 mb-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-5">
                 {(Object.keys(DOMAIN_CRUCIBLES) as Domain[]).map(d => (
                   <button
                     key={d}
                     type="button"
-                    onClick={() => setDomain(d)}
-                    className="flex-1 py-3 px-4 rounded-2xl text-left transition-all"
+                    onClick={() => {
+                      setDomain(d)
+                      setTier('T2')
+                      const t2Boards = DOMAIN_CRUCIBLES[d].tiers.T2?.legacyExamBoards
+                      if (t2Boards?.length) setExamBoard(t2Boards[0])
+                    }}
+                    className="py-3 px-4 rounded-2xl text-left transition-all"
                     style={{
                       background: domain === d ? targetMeta.color : 'linear-gradient(135deg, #fffcf4 0%, #faf4e6 100%)',
                       border: `1.5px solid ${domain === d ? targetMeta.color : 'rgba(26,24,37,0.09)'}`,
@@ -485,10 +491,33 @@ export function Home() {
                 ))}
               </div>
 
-              {domain === 'medicine' ? (
-                <>
+              <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
+                Tier calibration
+              </label>
+              <select
+                value={tier}
+                onChange={e => {
+                  const nextTier = e.target.value as Tier
+                  setTier(nextTier)
+                  const boards = DOMAIN_CRUCIBLES[domain].tiers[nextTier]?.legacyExamBoards
+                  if (boards?.length) setExamBoard(boards[0])
+                }}
+                className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
+                style={{
+                  border: '1.5px solid rgba(26,24,37,0.12)',
+                  boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
+                  color: '#1c1a14',
+                }}
+              >
+                {(Object.entries(DOMAIN_CRUCIBLES[domain].tiers) as [Tier, { label: string }][]).map(([t, info]) => (
+                  <option key={t} value={t}>{t} — {info.label}</option>
+                ))}
+              </select>
+
+              {domain === 'medicine' && DOMAIN_CRUCIBLES.medicine.tiers[tier]?.legacyExamBoards && (
+                <div className="mt-4">
                   <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
-                    Exam board calibration
+                    Exam board flavor
                   </label>
                   <select
                     value={examBoard}
@@ -500,29 +529,11 @@ export function Home() {
                       color: '#1c1a14',
                     }}
                   >
-                    {EXAM_BOARDS.map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
+                    {EXAM_BOARDS
+                      .filter(b => DOMAIN_CRUCIBLES.medicine.tiers[tier]?.legacyExamBoards?.includes(b.value))
+                      .map(b => <option key={b.value} value={b.value}>{b.label}</option>)}
                   </select>
-                </>
-              ) : (
-                <>
-                  <label className="block font-sans text-sm font-semibold mb-2.5" style={{ color: '#7a6858' }}>
-                    Tier calibration
-                  </label>
-                  <select
-                    value={tier}
-                    onChange={e => setTier(e.target.value as Tier)}
-                    className="w-full rounded-2xl py-4 px-5 font-sans text-base bg-white focus:outline-none transition-all"
-                    style={{
-                      border: '1.5px solid rgba(26,24,37,0.12)',
-                      boxShadow: '0 1px 3px rgba(26,24,37,0.05)',
-                      color: '#1c1a14',
-                    }}
-                  >
-                    {(Object.entries(DOMAIN_CRUCIBLES[domain].tiers) as [Tier, { label: string }][]).map(([t, info]) => (
-                      <option key={t} value={t}>{t} — {info.label}</option>
-                    ))}
-                  </select>
-                </>
+                </div>
               )}
 
               {/* Session mode — Topic vs Case-based */}

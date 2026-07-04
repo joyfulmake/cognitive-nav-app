@@ -128,16 +128,122 @@ export const CLINICAL_SUGGESTIONS: Partial<Record<ExamBoard, TopicSuggestion[]>>
   ],
 }
 
-// Provisional placeholder for the Engineering pilot domain — not tier-specific yet.
+// Provisional placeholders for domains beyond Medicine — not tier-specific yet.
 // Pending: universal topic bank per domain × tier (PRODUCT_ROADMAP.md Release 4.0).
-const ENGINEERING_SUGGESTIONS: TopicSuggestion[] = [
-  { label: 'Cantilever beam deflection under load' },
-  { label: 'Pressure vessel safety factor design' },
-  { label: 'Fatigue failure in rotating shafts' },
-  { label: 'Heat exchanger thermal efficiency' },
-  { label: 'Control system feedback stability' },
-  { label: 'Composite material delamination' },
-]
+const DOMAIN_SUGGESTIONS: Partial<Record<Domain, TopicSuggestion[]>> = {
+  engineering: [
+    { label: 'Cantilever beam deflection under load' },
+    { label: 'Pressure vessel safety factor design' },
+    { label: 'Fatigue failure in rotating shafts' },
+    { label: 'Heat exchanger thermal efficiency' },
+    { label: 'Control system feedback stability' },
+    { label: 'Composite material delamination' },
+  ],
+  law: [
+    { label: 'Negligence and duty of care' },
+    { label: 'Offer, acceptance and consideration' },
+    { label: 'Search and seizure exceptions' },
+    { label: 'Precedent and stare decisis' },
+    { label: 'Contract breach and remedies' },
+    { label: 'Due process and equal protection' },
+  ],
+  'computer-science': [
+    { label: 'Race conditions in concurrent systems' },
+    { label: 'CAP theorem tradeoffs' },
+    { label: 'Hash table collision handling' },
+    { label: 'Garbage collection strategies' },
+    { label: 'Distributed consensus (Raft/Paxos)' },
+    { label: 'Cache invalidation strategies' },
+  ],
+  'physical-sciences': [
+    { label: 'Entropy and the second law of thermodynamics' },
+    { label: 'Wave-particle duality' },
+    { label: 'Acid-base equilibrium' },
+    { label: 'Electromagnetic induction' },
+    { label: 'Plate tectonics and continental drift' },
+    { label: 'Reaction rate kinetics' },
+  ],
+  'life-sciences': [
+    { label: 'DNA replication fidelity' },
+    { label: 'Natural selection and fitness' },
+    { label: 'Enzyme kinetics and inhibition' },
+    { label: 'Photosynthesis electron transport chain' },
+    { label: 'Gene regulation and expression' },
+    { label: 'Population genetics and drift' },
+  ],
+  mathematics: [
+    { label: 'Fundamental theorem of arithmetic' },
+    { label: "Gödel's incompleteness theorems" },
+    { label: 'Mean value theorem' },
+    { label: 'Eigenvalues and eigenvectors' },
+    { label: 'Proof by induction' },
+    { label: 'P vs NP problem' },
+  ],
+  'business-economics-finance': [
+    { label: 'Supply and demand equilibrium' },
+    { label: 'Efficient market hypothesis' },
+    { label: 'Compound interest and time value of money' },
+    { label: 'Market segmentation strategy' },
+    { label: 'Inflation and monetary policy' },
+    { label: 'Game theory in pricing strategy' },
+  ],
+  humanities: [
+    { label: 'Causes of the French Revolution' },
+    { label: 'Existentialism and authenticity' },
+    { label: 'Unreliable narration in fiction' },
+    { label: 'The printing press and the Reformation' },
+    { label: 'Colonialism and historiography' },
+    { label: 'Structuralism vs post-structuralism' },
+  ],
+  'social-sciences': [
+    { label: 'Cognitive dissonance theory' },
+    { label: 'Social identity and in-group bias' },
+    { label: 'Institutional vs individual explanations' },
+    { label: 'Operant conditioning' },
+    { label: 'Political polarization mechanisms' },
+    { label: 'Social capital and trust networks' },
+  ],
+  'arts-design': [
+    { label: 'Composition and the rule of thirds' },
+    { label: 'Color theory and contrast' },
+    { label: 'Typographic grid systems' },
+    { label: 'Form follows function' },
+    { label: 'Negative space in composition' },
+    { label: 'Golden ratio in design' },
+  ],
+  'trades-vocational': [
+    { label: 'GFCI nuisance tripping diagnosis' },
+    { label: 'Water hammer in plumbing systems' },
+    { label: 'HVAC refrigerant cycle troubleshooting' },
+    { label: 'Torque specifications and fastener failure' },
+    { label: 'Welding penetration defects' },
+    { label: 'Electrical grounding and bonding' },
+  ],
+  education: [
+    { label: 'Scaffolding and the zone of proximal development' },
+    { label: 'Working memory load in instruction' },
+    { label: 'Formative vs summative assessment' },
+    { label: 'Spaced repetition and retention' },
+    { label: 'Differentiated instruction design' },
+    { label: 'Growth mindset interventions' },
+  ],
+  'agriculture-environmental-science': [
+    { label: 'Nitrogen cycle in soil fertility' },
+    { label: 'Crop rotation and pest management' },
+    { label: 'Watershed runoff and buffer zones' },
+    { label: 'Soil erosion and ground cover' },
+    { label: 'Carbon sequestration in agriculture' },
+    { label: 'Invasive species ecosystem impact' },
+  ],
+  entrepreneurship: [
+    { label: 'Product-market fit signals' },
+    { label: 'Customer acquisition cost vs lifetime value' },
+    { label: 'Churn and retention cohort analysis' },
+    { label: 'Pivot vs persevere decision criteria' },
+    { label: 'Pricing strategy experimentation' },
+    { label: 'Network effects and defensibility' },
+  ],
+}
 
 export function getSuggestions(
   appMode: AppMode,
@@ -146,8 +252,8 @@ export function getSuggestions(
   domain?: Domain,
   _tier?: Tier
 ): TopicSuggestion[] {
-  if (appMode === 'clinical' && domain === 'engineering') {
-    return ENGINEERING_SUGGESTIONS.slice(0, count)
+  if (appMode === 'clinical' && domain && domain !== 'medicine' && DOMAIN_SUGGESTIONS[domain]) {
+    return DOMAIN_SUGGESTIONS[domain]!.slice(0, count)
   }
   if (appMode === 'clinical') {
     const board = examBoard ?? 'general'

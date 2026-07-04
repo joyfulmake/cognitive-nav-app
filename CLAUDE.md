@@ -503,46 +503,65 @@ Applicable to neet-ss, usmle-2, usmle-3. Gate 3 benefits from questions probing:
 `EvaluateRequest` (types.ts):
 - `vignette?: string` — passed through api.ts to evaluate.ts; injected into LLM user message when present
 
-## `{ domain, tier }` calibration engine (2026-07-04)
+## `{ domain, tier }` calibration engine (2026-07-04, expanded to 15 domains same day)
 
 Generalizes Clinical Crucible's medicine-only `ExamBoard` calibration into a domain-agnostic
-engine (`PRODUCT_ROADMAP.md` Release 4.0, item 1). Medicine's behavior is unchanged — this only
-adds a second domain (Engineering) as a pilot proving the abstraction generalizes.
+engine (`PRODUCT_ROADMAP.md` Release 4.0, item 1). Shipped in two passes the same day: first
+Medicine (migrated unchanged) + Engineering (pilot, proving the abstraction generalizes), then
+expanded to all 15 domains in the roadmap's taxonomy, each spanning the full T1–T5 tier ladder
+(school → undergrad → grad/specialist → doctoral → frontier/beyond-PhD).
 
 **`src/core/domainCrucibles.ts`** — single source of truth, imported by both the frontend and
 the two Cloudflare Pages Functions below (Functions bundle relative imports across the repo via
 wrangler's esbuild pass; this module is pure data/logic, no DOM, so it's safe to share):
-- `Domain = 'medicine' | 'engineering'`, `Tier = 'T1'..'T5'` (types.ts)
-- `DOMAIN_CRUCIBLES: Record<Domain, DomainCrucibleConfig>` — per domain: tier metadata
-  (medicine's tiers carry `legacyExamBoards` for backward-compat resolution), a static
-  `calibrationBlock` (the evaluate.ts system-prompt section), `caseWriterRole` +
-  `caseStyle` + `caseInstructions` (vignette.ts), and `layerExamples` (LevelStudyPanel's
-  "a question that lives at this depth" illustration per L1–L4)
+- `Domain` (types.ts) — 15 values: `medicine`, `engineering`, `law`, `computer-science`,
+  `physical-sciences`, `life-sciences`, `mathematics`, `business-economics-finance`,
+  `humanities`, `social-sciences`, `arts-design`, `trades-vocational`, `education`,
+  `agriculture-environmental-science`, `entrepreneurship`. `Tier = 'T1'..'T5'`.
+- `DOMAIN_CRUCIBLES: Record<Domain, DomainCrucibleConfig>` — per domain: 5 tiers (medicine's
+  T2/T3/T4 carry `legacyExamBoards` for backward-compat resolution; T1/T5 and every tier of
+  every other domain have no legacy board — reached via the tier dropdown directly), a static
+  `calibrationBlock` (the evaluate.ts system-prompt section, ~20–25 lines: a Gate-2
+  "competing/edge-case" section with domain-flavored ✗/✓ examples, a Gate-3
+  "philosophy/threshold" section for advanced tiers, a per-tier depth-calibration list),
+  `caseWriterRole` + `caseStyle` (one line per tier) + `caseInstructions` (vignette.ts), and
+  `layerExamples` (LevelStudyPanel's "a question that lives at this depth" illustration, L1–L4)
 - `resolveDomain(appMode, domain?)`, `resolveTier(domain, examBoard?, tier?)`,
   `resolveCaseStyleKey(domain, examBoard?, tier?)` — backward-compat resolution: old clients
   sending only `appMode: 'clinical'` + `examBoard` resolve to `domain: 'medicine'` and the
-  matching tier, no data migration needed (Dexie sessions aren't indexed on these fields)
+  matching tier, no data migration needed (Dexie sessions aren't indexed on these fields).
+  `resolveCaseStyleKey` prefers `examBoard` only for medicine, else falls to `tier` — this
+  matters because medicine's T1/T5 have no `examBoard` to key off of.
 
 **Medicine migration is byte-identical** — verified with a throwaway equivalence script
 comparing the registry-driven output against the pre-generalization hardcoded text for the
 calibration block, case-writer role, all 10 `caseStyle` entries, and `caseInstructions`. Zero
-diffs. The one intentional behavior change: `evaluate.ts`'s calibration block is now only
-injected when a domain resolves (previously the clinical calibration text was static and always
-present, even in `epistemic` mode, where the model was told to ignore it — now it's just absent).
+diffs, re-verified after the T1/T5 retrofit. The one intentional behavior change: `evaluate.ts`'s
+calibration block is now only injected when a domain resolves (previously the clinical
+calibration text was static and always present, even in `epistemic` mode, where the model was
+told to ignore it — now it's just absent).
 
 **`functions/api/evaluate.ts`** — `BASE_SYSTEM_PROMPT` has a `{{DOMAIN_CALIBRATION}}`
 placeholder; `buildSystemPrompt(domain)` substitutes the resolved domain's `calibrationBlock`
 (or empty string for epistemic/no domain). Context lines send `Exam board calibration: X` for
-medicine (unchanged) or `Domain: X, Tier: Y (label)` for other domains.
+medicine when a board applies, or `Domain: X, Tier: Y (label)` otherwise.
 
 **`functions/api/vignette.ts`** — also fixed a pre-existing bug found while wiring this up:
 the frontend call was still hitting the stale `/.netlify/functions/vignette` path from before
 the Cloudflare Pages migration (`463735d`), so case-based vignettes were silently 404ing in
 production. Now calls `/api/vignette`.
 
-**Known content gap (by design, deferred)**: `topicSuggestions.ts` has only a 6-item hardcoded
-Engineering placeholder list, not real per-tier content — universal topic bank generalization is
-explicitly the next roadmap item, not part of this phase.
+**`src/pages/Home.tsx`** — Domain selector is now a wrapping grid (`grid-cols-2 sm:grid-cols-3`,
+was a single-row flex that only worked for 2 buttons). A Tier dropdown is always shown for every
+domain including Medicine; Medicine additionally shows a secondary "Exam board flavor" dropdown,
+filtered to that tier's `legacyExamBoards`, only when the selected tier has one (T2–T4) — T1/T5
+hide it, same as any other domain. Switching domain or tier resets `examBoard` to the first
+matching board (or clears it) so a stale board from a previous tier is never silently submitted.
+
+**Known content gap (by design, deferred)**: `topicSuggestions.ts` has only a provisional 4–6
+item placeholder list per domain (not tier-specific), and `caseInstructions`/`calibrationBlock`
+content for the 13 new domains is a first hand-authored pass, not expert-reviewed — universal
+topic bank generalization and domain-expert content review are the next roadmap items.
 
 ## Vedic foundation
 

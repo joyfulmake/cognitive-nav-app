@@ -8,7 +8,22 @@ export type ExamBoard = 'neet-ug' | 'neet-pg' | 'neet-ss' | 'usmle-1' | 'usmle-2
 // medicine's specific exams into a universal school→undergrad→grad→doctoral→frontier ladder.
 // See src/core/domainCrucibles.ts. Both optional/additive — existing clinical sessions without
 // these fields are treated as domain: 'medicine' at read time.
-export type Domain = 'medicine' | 'engineering'
+export type Domain =
+  | 'medicine'
+  | 'engineering'
+  | 'law'
+  | 'computer-science'
+  | 'physical-sciences'
+  | 'life-sciences'
+  | 'mathematics'
+  | 'business-economics-finance'
+  | 'humanities'
+  | 'social-sciences'
+  | 'arts-design'
+  | 'trades-vocational'
+  | 'education'
+  | 'agriculture-environmental-science'
+  | 'entrepreneurship'
 export type Tier = 'T1' | 'T2' | 'T3' | 'T4' | 'T5'
 
 export type IntelligenceTag = 'IQ' | 'EQ' | 'Spatial'
