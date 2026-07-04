@@ -435,19 +435,20 @@ export function Home() {
                 >
                   <div className="font-display font-extrabold text-lg leading-tight"
                     style={{ color: active ? '#fff' : '#1c1a14' }}>
-                    {mode === 'epistemic' ? 'General Epistemic' : 'Clinical Crucible'}
+                    {mode === 'epistemic' ? 'General Epistemic' : 'Domain-wise Crucibles'}
                   </div>
                   <div className="font-sans text-sm mt-1 leading-[1.6]"
                     style={{ color: active ? 'rgba(255,255,255,0.60)' : '#8a7d6e' }}>
-                    {mode === 'epistemic' ? 'Any topic · Universal depth engine' : 'Medical · NEET, USMLE, PLAB calibrated'}
+                    {mode === 'epistemic' ? 'Any topic · Universal depth engine' : 'Medicine, Engineering & more · Domain-calibrated'}
                   </div>
                 </button>
               )
             })}
           </div>
           <p className="font-sans text-xs mt-3 leading-[1.7]" style={{ color: '#8a8480' }}>
-            Clinical Crucible uses the exact same four-depth question engine as General Epistemic —
-            the only difference is that topics are medical and evaluation is calibrated to NEET, USMLE and PLAB exams.
+            Domain-wise Crucibles use the exact same four-depth question engine as General Epistemic —
+            the only difference is that topics are domain-specific and evaluation is calibrated to that
+            domain's own standards (exam boards for Medicine, tiers for other domains).
             The depth magic is identical.
           </p>
         </motion.section>
