@@ -72,9 +72,15 @@ function ContextPanel({ topic, gate }: { topic: string; gate: number }) {
 
   if (error) {
     return (
-      <p className="font-mono text-xs text-muted px-4 py-3">
-        Context unavailable — check your network and try again.
-      </p>
+      <button
+        type="button"
+        onClick={fetch_}
+        className="w-full py-3 rounded-xl font-sans text-sm font-semibold transition-all text-left px-4 flex items-center gap-2"
+        style={{ backgroundColor: '#faf8f4', border: '1.5px dashed #c8c0b4', color: '#8a7d6e' }}
+      >
+        <span style={{ fontSize: '1rem' }}>↻</span>
+        <span>Couldn't load context — tap to try again</span>
+      </button>
     )
   }
 
