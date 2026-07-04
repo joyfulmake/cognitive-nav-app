@@ -124,3 +124,81 @@ Exam-prep audiences convert better than general-curiosity audiences because they
 - Every community-based tactic above depends on **being a real participant first, promoter second** — the moment a community reads a post as pure self-promotion, the account and often the domain get flagged, closing that channel permanently.
 - Don't run the same tactic across all 15 domains at once — sequence per §2. A generic "we support 15 domains" pitch reads as unfocused; a sharp "this is built for NEET Step 2" pitch reads as built-for-you.
 - Free channels compound over weeks, not days — the SEO posts and Quora answers won't show meaningful traffic for 4-8 weeks. Don't judge the whole playbook by week-1 numbers; judge Reddit/Telegram/PH by week 1, judge SEO/Quora by week 6+.
+
+---
+
+## 8. The 4-platform launch checklist (Reddit, Product Hunt, Hacker News, Twitter/X)
+
+These are the four Tier-1 channels from §3, expanded into exact, sequenced steps with ready-to-adapt draft copy. Do them in this order, spaced across the same week (per the §5 calendar, days 19-25) — each one references the last as social proof, so the order compounds instead of just repeating.
+
+**Order: Reddit → Product Hunt → Hacker News → Twitter/X thread tying all three together.**
+
+### 8.1 Reddit (do this first — it's where the actual target users already are)
+
+**Prep (do this 1-2 weeks before posting, not the same day):**
+1. Pick 2-3 target subs to start (don't hit all of them at once) — e.g. r/NEET + r/medicalschool for the first wave.
+2. Join and genuinely comment on 5-10 existing threads in each sub over that week — answer real questions, no link yet. This builds account karma/age past most subs' self-promo minimums and, more importantly, makes your eventual post read as "one of us," not a drive-by.
+3. Read each sub's sidebar/wiki rules for self-promotion — note any required ratio, flair, or a specific self-promo day/megathread.
+4. Have the demo video ready to link (already recorded, on the Home page) and a 2-3 sentence "why I built this" story drafted.
+
+**Draft post (adapt per sub):**
+> **Title:** I built a free tool that never answers your question — it scores how deep it is and tells you exactly what's missing (built for NEET/USMLE prep)
+>
+> **Body:** I kept noticing I could recite an answer for boards without actually understanding the mechanism underneath it — and that gap only showed up under exam pressure. So I built a tool that does the opposite of every AI study tool: you ask it a question, and it never answers. It tells you which of 4 cognitive depths your question reached (fact → mechanism → edge case → design philosophy) and points at exactly what you're missing to go deeper. Five questions that clear a depth and it's supposed to wire in for good (it's based on Hebb's 1949 work on repeated co-activation). No login, works offline, free. Would genuinely value feedback from people actually in the middle of boards prep: [link]
+
+**Launch day:**
+- Post at a high-traffic time for that sub's likely timezone (evening IST for India-heavy NEET subs; US morning/early afternoon for USMLE-heavy ones).
+- Immediately add a comment yourself with more of the "why" — gives the post substance before the first stranger comment lands.
+- Reply to every single comment within a few hours — velocity matters more than any single reply's cleverness.
+- Wait 24-48h before cross-posting to a second sub — simultaneous cross-posting reads as spam to Reddit's spam filter and to readers who browse multiple subs.
+
+### 8.2 Product Hunt (do this once Reddit has produced a few real users/quotes)
+
+**Prep (start ~1 week ahead):**
+1. Create/warm up your maker profile — follow a few relevant categories/makers now, don't do it same-day.
+2. Prepare: a tagline under 60 characters, 3-5 gallery images or a gif (the confetti/gate-mastery moment is a strong one), and a full "maker comment" (see below) ready to paste the second it's live.
+3. Line up 5-10 real people (Reddit responders, early testers) who'll authentically check it out and comment on launch day. Do not organize upvote trading — PH actively detects and penalizes it.
+4. Schedule for a Tuesday, Wednesday, or Thursday (highest PH traffic; avoid Monday/Friday/weekend).
+
+**Draft tagline:** "An AI that never answers your question — it scores how deep it is"
+
+**Draft maker comment (post this yourself, immediately, as the first comment):**
+> Hey PH! I built Cognitive Nav after noticing that being able to recite an answer and actually understanding it are two different skills — and standardized tests (NEET, USMLE, CFA, Bar exam, and 11 other fields now) only reward the second one under pressure. So instead of another AI that answers your questions, this one classifies the cognitive depth of the *question itself* — 4 layers, from "name it" to "question why the system was designed this way" — and tells you exactly what's missing to go deeper. 5 qualifying questions at a depth and it's meant to wire in permanently (Hebb, 1949). Free, no login, works offline. Would love your feedback, especially if you're currently studying for something with a real stakes exam behind it.
+
+**Launch day:**
+- Publish at 12:01 AM PT (PH's day resets then — maximizes the full 24h visibility window).
+- Post the maker comment immediately, don't wait for questions to arrive first.
+- Share the live PH link on Twitter/LinkedIn/relevant Discords/Telegram groups *after* it's live (early external sharing before the listing exists doesn't help and confuses momentum tracking).
+- Respond to every comment same-day. Ask people to "check it out and share feedback," never "please upvote" — against PH's guidelines and it reads poorly regardless.
+
+### 8.3 Hacker News — Show HN (do this after Product Hunt, referencing it as proof)
+
+**Prep:**
+1. Draft the title as a plain technical description, not a pitch: **"Show HN: An LLM that scores the depth of your question instead of answering it"**
+2. Prepare a technical first comment (post it yourself immediately) — HN's audience wants the mechanism, not the marketing:
+
+> This started from a personal annoyance: I could give a textbook-correct answer on a topic without having actually built the mental model underneath it. So the eval loop here does the opposite of typical AI tutoring — it never answers, it classifies which of 4 cognitive depths your question reached (Groq's llama-3.3-70b-versatile, JSON-mode, ~1 call per question) and returns a targeted redirect naming what's structurally missing. 5 qualifying questions at a depth locks it in, based on Hebb's 1949 repeated-co-activation work. Sessions are stored offline-first in IndexedDB (Dexie) so it works with no account and no network after first load. It now spans 15 fields (medicine, law, engineering, CS, etc.), each calibrated to real credentialing exams where one exists (USMLE, CFA, PE, bar exam, GATE...). No login, free, would love technical feedback — happy to go deep on the eval-prompt design or the gate-mastery logic in the comments.
+
+**Timing:** weekday, 8-10am US Eastern — this is when HN's concurrent readership peaks and the "new" queue still moves fast enough for a good post to surface.
+
+**Launch day:**
+- Post, then immediately add the comment above yourself.
+- Monitor actively for the first few hours — HN's front-page survival depends heavily on early reply velocity, not just the post itself.
+- If technical critique is harsh, engage with the substance rather than defending — HN respects genuine engagement with criticism far more than pushback, and a good back-and-forth thread often outperforms the original post for reach.
+- One shot per URL — don't resubmit if it doesn't catch on; wait for a genuinely new milestone (a real feature ship, a traction number) before trying again.
+
+### 8.4 Twitter/X thread (do this last, tying the other three together)
+
+**Prep:**
+- Re-cut the demo video to under ~2:20 for native upload (X's sweet spot for native video engagement).
+- Draft a 5-8 tweet thread: (1) the problem — reciting ≠ understanding, (2) the insight — Hebbian learning, gate mastery, (3) the mechanism — never answers, scores depth, shows the "prick" redirect, (4) the native video, (5) what's live now (15 fields, real exam boards), (6) links to the Reddit thread / PH listing / HN thread as they go live, framed as "day 1 of this" rather than separate announcements.
+
+**Launch day:**
+- Post once Reddit/PH/HN links exist so the thread can reference real, live discussion rather than just claims.
+- Post at a high-engagement time for your primary audience's timezone.
+- No hashtags, no mass-tagging — organic dev/edtech Twitter rewards substance over reach-gaming.
+- Reply to every response; quote-tweet good replies to extend the thread's life instead of starting new posts.
+
+### After all four
+
+Update §6's tracking (UTM per channel) to see which of the four actually converted to real sessions, not just clicks or upvotes — and update this file with what worked before repeating any of it on the second wave of subs/communities.
