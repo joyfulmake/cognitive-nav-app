@@ -105,7 +105,7 @@ export function useOpenAITTS() {
       }
 
       if (!audioBuf) {
-        // 3. Fetch from OpenAI via Netlify function
+        // 3. Fetch from OpenAI via Pages Function
         setBadge('loading')
         const ctrl = new AbortController()
         const tOut = setTimeout(() => ctrl.abort(), 12000)

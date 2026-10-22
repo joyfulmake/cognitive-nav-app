@@ -118,7 +118,7 @@ Browser (React PWA)
 │   ├── types.ts       — all data shapes
 │   └── topicSuggestions.ts — curated topic lists per mode/board
 │
-└── Network calls → Netlify Functions (serverless)
+└── Network calls → Cloudflare Pages Functions (serverless)
     ├── evaluate.ts      — Groq LLM depth evaluation
     ├── tts.ts           — ElevenLabs TTS proxy (audio cached in Dexie)
     ├── whisper.ts       — Groq Whisper STT (base64 audio → transcript)
@@ -135,7 +135,7 @@ External Services
 └── Firebase          — Auth + Firestore (optional, graceful fallback to local identity)
 ```
 
-No dedicated backend. No custom database. All state is either in-browser (Dexie/Zustand) or passed through stateless Netlify Functions. Sessions created offline persist locally and sync when online if Firebase is configured.
+No dedicated backend. No custom database. All state is either in-browser (Dexie/Zustand) or passed through stateless Cloudflare Pages Functions. Sessions created offline persist locally and sync when online if Firebase is configured.
 
 ---
 
@@ -150,7 +150,7 @@ Every question the user submits goes through one evaluation pass:
    - `activeGate` — which gate is currently being worked on (computed by `getActiveGate()`)
    - `previousReformulations` — the last few questions, so the AI can see the trajectory
 
-2. **Netlify function** (`netlify/functions/evaluate.ts`):
+2. **Pages Function** (`functions/api/evaluate.ts`):
    - Sends to Groq `llama-3.3-70b-versatile` with `response_format: json_object`
    - System prompt contains the full rubric, counter-examples for each gate boundary, the iron rule (borderline = lower), and output format
    - `max_tokens: 600` — enough for a tight JSON response, not a monologue
@@ -208,13 +208,13 @@ PrickLoop.tsx: handleSubmit()
          ▼
 useMutation → evaluateQuestion(api.ts)
          │
-         │  POST /.netlify/functions/evaluate
+         │  POST /api/evaluate
          │  body: { question, topic, appMode, examBoard,
          │          targetDepth, activeGate, reformulationIndex,
          │          previousReformulations }
          │
          ▼
-netlify/functions/evaluate.ts
+functions/api/evaluate.ts
   ├── Build system prompt (SYSTEM_PROMPT constant)
   ├── Build user message (topic + context + trajectory)
   └── Groq API call → llama-3.3-70b-versatile
@@ -271,7 +271,7 @@ Structurally, this keeps things coherent because:
 ```
 cognitive-nav-app/
 │
-├── netlify/functions/
+├── functions/api/
 │   ├── evaluate.ts        LLM depth evaluation proxy (Groq) — multilingual; enhanced diff-dx Gate 2 + management Gate 3
 │   ├── tts.ts             ElevenLabs TTS proxy (emotion-aware, accent-aware)
 │   ├── whisper.ts         Groq Whisper STT proxy
@@ -346,6 +346,6 @@ cognitive-nav-app/
 
 Cognitive Nav is a question-depth trainer. One interaction: you ask, the AI classifies the depth your question reached, tells you exactly what structural element would unlock the next depth, and you ask again. Five qualifying questions per gate wires that cognitive act into your default thinking.
 
-The architecture is deliberately minimal: no custom backend, no server-side state, no database to manage. Everything the user does lives in their browser (Dexie/Zustand). The only server-side work is the LLM call (Groq) and audio generation (ElevenLabs), both proxied through Netlify Functions to keep keys off the client.
+The architecture is deliberately minimal: no custom backend, no server-side state, no database to manage. Everything the user does lives in their browser (Dexie/Zustand). The only server-side work is the LLM call (Groq) and audio generation (ElevenLabs), both proxied through Cloudflare Pages Functions to keep keys off the client.
 
 The rubric is the product. The AI is the rubric applier. The score is arithmetic. The prick is a precise redirect. Nothing is opinion.

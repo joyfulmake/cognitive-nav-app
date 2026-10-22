@@ -3,7 +3,7 @@ import { getAuth, type Auth } from 'firebase/auth'
 import { getFirestore, type Firestore } from 'firebase/firestore'
 
 // ─── Optional Firebase — app works fully without it ───────────────────────────
-// Set these in Netlify environment variables (or .env.local for dev):
+// Set these in Cloudflare Pages environment variables (or .env.local for dev):
 //   VITE_FIREBASE_API_KEY
 //   VITE_FIREBASE_AUTH_DOMAIN
 //   VITE_FIREBASE_PROJECT_ID

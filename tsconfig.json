@@ -20,6 +20,5 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"],
-  "exclude": ["netlify"]
+  "include": ["src"]
 }

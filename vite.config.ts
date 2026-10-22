@@ -18,12 +18,4 @@ export default defineConfig({
       'kokoro-js': new URL('./node_modules/kokoro-js/dist/kokoro.web.js', import.meta.url).pathname,
     },
   },
-  server: {
-    proxy: {
-      '/.netlify/functions': {
-        target: 'http://localhost:8888',
-        changeOrigin: true,
-      },
-    },
-  },
 })

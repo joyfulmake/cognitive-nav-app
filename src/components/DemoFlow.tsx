@@ -1315,7 +1315,7 @@ export function DemoFlow({ appMode = 'epistemic' }: { appMode?: AppMode }) {
   const elevenlabs = useElevenLabsTTS()
   const openaiTTS = useOpenAITTS()
   const cartesia = useCartesiaTTS()
-  // Tier 0: OpenAI tts-1-hd (Nova/Onyx) — requires OPENAI_API_KEY in Netlify env
+  // Tier 0: OpenAI tts-1-hd (Nova/Onyx) — requires OPENAI_API_KEY in Cloudflare Pages env
   // Tier 1: ElevenLabs (Matilda/Liam/etc.) — requires ELEVENLABS_API_KEY
   // Tier 2: Cartesia Sonic-2 (Helpful Woman/Newsman) — requires CARTESIA_API_KEY
   // Tier 3: Kokoro WASM — English only, free, offline after first load

@@ -33,7 +33,7 @@ Each row: what the feature does, where it lives, what drives it, and its product
 | S-06 | Session history | As a learner, I want to review my past sessions and see my improvement | `History.tsx` — session list, stats grid, exam board filters | **Live** |
 | S-07 | Foundation mode (L1 target) | As a beginner, I want a mode where any question counts | `targetDepth === 1` → any question qualifies; no gate system | **Live** |
 | S-08 | Offline-first sessions | As a mobile learner, I want sessions to work without internet | Dexie IndexedDB, Zustand persist, `offlineCreated` flag | **Live** |
-| S-09 | Depth-aware context panel | As a learner, I want to build interest in my topic before asking questions at each gate | `ContextPanel` in `LevelStudyPanel.tsx` + `context.ts` Netlify function (Groq). Returns hook, 3 facts, 3 Google search links calibrated to topic + gate depth. Lazy-loaded on button click. | **Live** |
+| S-09 | Depth-aware context panel | As a learner, I want to build interest in my topic before asking questions at each gate | `ContextPanel` in `LevelStudyPanel.tsx` + `context.ts` Pages Function (Groq). Returns hook, 3 facts, 3 Google search links calibrated to topic + gate depth. Lazy-loaded on button click. | **Live** |
 
 ### Two App Modes
 
@@ -46,7 +46,7 @@ Each row: what the feature does, where it lives, what drives it, and its product
 
 | ID | Feature | User Story | Implementation | Status |
 |----|---------|-----------|----------------|--------|
-| V-01 | ElevenLabs human voice (Tier 1) | As a demo viewer, I want genuinely human narration, not synthetic TTS | `useElevenLabsTTS.ts` + `tts.ts` Netlify function; Matilda/Liam (en-US), Alice/Daniel (en-GB), Priyanka/Anant (hi-IN), Matilda/Josh (multilingual). Deliberately NOT Rachel/Charlie which are recognizable "AI demo" voices. Cache key `el11:` | **Live** (requires `ELEVENLABS_API_KEY`) |
+| V-01 | ElevenLabs human voice (Tier 1) | As a demo viewer, I want genuinely human narration, not synthetic TTS | `useElevenLabsTTS.ts` + `tts.ts` Pages Function; Matilda/Liam (en-US), Alice/Daniel (en-GB), Priyanka/Anant (hi-IN), Matilda/Josh (multilingual). Deliberately NOT Rachel/Charlie which are recognizable "AI demo" voices. Cache key `el11:` | **Live** (requires `ELEVENLABS_API_KEY`) |
 | V-02 | Kokoro neural voice (Tier 2) | As a user without EL key, I want better-than-browser TTS | `useKokoroTTS.ts` — `kokoro-82M-v1.0`, WASM, ~45MB, cached. English only. | **Live** (English only) |
 | V-03 | Web Speech API (Tier 3) | As a user on any browser, I want at least some narration | `useVoiceSettings.ts` — prioritises Microsoft Natural Online > Google | **Live** |
 | V-04 | TTS cache (Dexie) | As a user, I want audio generated once and never again for the same line | Dexie `ttsCache` table; EL key `el11:{voiceId}:{model}:{format}:{hash}`, OpenAI key `oa2:{voice}:{hash}`. Cartesia NOT cached — each eval is unique. | **Live** |
@@ -54,7 +54,7 @@ Each row: what the feature does, where it lives, what drives it, and its product
 | V-06 | Accent-aware voice selection | As a UK English user, I want British voices | `pickVoiceForLang()` — en-GB → Alice + Daniel; en-US → Matilda + Liam; hi-IN → Priyanka + Anant; other → multilingual model | **Live** |
 | V-07 | Multilingual narration (18 languages) | As a non-English speaker, I want the demo narrated in my language | `DIALOGUE` object (en, hi, ta, te, kn, mr, es, pt, fr, de, ar) + `NARRATIONS` fallback | **Live** |
 | V-08 | Voice input (STT) | As a user, I want to speak my question instead of typing, in any language | `useVoiceInput.ts` — WebSpeech mode + Whisper mode. Whisper passes language code; evaluation responds in the user's language. | **Live** |
-| V-10 | Interactive guide Q&A | As a demo viewer, I want to ask the guide about how the app works in real-time | `guide-qa.ts` Netlify function + DemoFlow expandable panel. Guide answers in character, speaks via EL if configured. | **Live** |
+| V-10 | Interactive guide Q&A | As a demo viewer, I want to ask the guide about how the app works in real-time | `guide-qa.ts` Pages Function + DemoFlow expandable panel. Guide answers in character, speaks via EL if configured. | **Live** |
 | V-09 | Voice settings UI | As a user, I want to choose my preferred voice, language, rate | `VoiceSettings.tsx` — preset selector, language picker, guide + learner voice pickers | **Live** |
 | V-11 | OpenAI tts-1-hd (Tier 0) | As a demo viewer, I want the best multilingual narration quality available | `useOpenAITTS.ts` + `openai-tts.ts` — Nova (guide), Onyx (learner), Shimmer (celebration). Auto language detection. Falls through to EL (Tier 1) if `OPENAI_API_KEY` not set. Cache prefix `oa2:`. | **Live** (requires `OPENAI_API_KEY`) |
 | V-12 | Cartesia Sonic-2 session feedback voice | As a learner, I want to hear my evaluation read back to me immediately | `useCartesiaTTS.ts` + `cartesia-tts.ts` — 🔊 button on EvaluationCard reads appreciation + prickText. <135ms first chunk. Guide voice: Helpful Woman. Learner voice: Newsman. Not cached. | **Live** (requires `CARTESIA_API_KEY`) |
@@ -85,7 +85,7 @@ Each row: what the feature does, where it lives, what drives it, and its product
 
 | ID | Feature | User Story | Implementation | Status |
 |----|---------|-----------|----------------|--------|
-| C-01 | Case-based sessions | As a medical student, I want to start from a clinical vignette to mirror USMLE Step 2 / PLAB format | `vignette.ts` Netlify function; Home.tsx session mode toggle; vignette card in PrickLoop; vignette injected into `evaluate.ts` user message | **Live** |
+| C-01 | Case-based sessions | As a medical student, I want to start from a clinical vignette to mirror USMLE Step 2 / PLAB format | `vignette.ts` Pages Function; Home.tsx session mode toggle; vignette card in PrickLoop; vignette injected into `evaluate.ts` user message | **Live** |
 | C-02 | Differential diagnosis gate | As a clinical learner, I want Gate 2 to push me to name a competing diagnosis and what breaks the symmetry | Enhanced clinical Gate 2 criteria in `evaluate.ts` system prompt — competing dx, condition that changes finding interpretation, named population edge case | **Live** |
 | C-03 | Management philosophy gate | As an NEET SS / USMLE 2/3 student, I want Gate 3 to probe WHY treatment thresholds are set | Enhanced clinical Gate 3 in `evaluate.ts` — treatment threshold rationale, competing management frameworks. Applies to neet-ss, usmle-2, usmle-3. | **Live** |
 | C-04 | Topic bank with exam-weighted suggestions | As a medical student, I want curated high-yield topics per exam board | `topicSuggestions.ts` topic lists per board; body system classifier on all topics | **Live** |

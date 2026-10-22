@@ -36,7 +36,7 @@ export function AuthPanel({ onClose, compact = false }: Props) {
         <div className="font-display font-bold text-base text-ink mb-2">Cloud sync not configured</div>
         <p className="font-sans text-sm text-muted leading-[1.75]">
           Firebase is not set up. Your sessions are saved locally.
-          Add Firebase keys to Netlify to enable cross-device sync.
+          Add Firebase keys to Cloudflare Pages to enable cross-device sync.
         </p>
       </div>
     )

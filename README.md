@@ -41,16 +41,16 @@ Three gates connect the layers. Each gate requires five qualifying questions to 
 ```
 Browser (React + Vite PWA)
     │
-    ├── Evaluation loop     →  Netlify Function  →  Groq llama-3.3-70b-versatile
+    ├── Evaluation loop     →  Cloudflare Pages Function  →  Groq llama-3.3-70b-versatile
     ├── Voice narration     →  Four-tier cascade (OpenAI → ElevenLabs → Cartesia → Kokoro → Web Speech)
-    ├── Voice input (STT)   →  Netlify Function  →  Groq Whisper large-v3-turbo
+    ├── Voice input (STT)   →  Cloudflare Pages Function  →  Groq Whisper large-v3-turbo
     ├── Session storage     →  Dexie.js (IndexedDB, offline-first)
     └── Auth (optional)     →  Firebase
 ```
 
 **Frontend:** React 18 + TypeScript + Vite + Tailwind CSS + Framer Motion
 
-**AI evaluation:** Groq (`llama-3.3-70b-versatile`, JSON mode) behind a Netlify function proxy. Never exposed to the client.
+**AI evaluation:** Groq (`llama-3.3-70b-versatile`, JSON mode) behind a Cloudflare Pages Function proxy. Never exposed to the client.
 
 **TTS cascade** — each tier is a `Promise.race` fallback; a hang or missing key falls to the next:
 
@@ -187,4 +187,4 @@ The score measures how consistently you reached the depth you chose. Not speed. 
 
 ---
 
-*Built with Groq · ElevenLabs · Cartesia · OpenAI · Netlify · React · Vite · Tailwind*
+*Built with Groq · ElevenLabs · Cartesia · OpenAI · Cloudflare Pages · React · Vite · Tailwind*
